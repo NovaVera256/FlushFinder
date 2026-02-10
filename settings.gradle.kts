@@ -19,6 +19,6 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "FlushFInder"
+rootProject.name = "FlushFinder"
 include(":app")
  
