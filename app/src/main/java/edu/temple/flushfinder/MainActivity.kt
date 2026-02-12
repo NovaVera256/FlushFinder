@@ -1,13 +1,10 @@
 package edu.temple.flushfinder
 
-import android.graphics.RuntimeShader
-import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
-import androidx.annotation.RequiresApi
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -20,9 +17,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.StarRate
-import androidx.compose.material3.BottomAppBar
 import androidx.compose.material3.Button
-import androidx.compose.material3.ColorScheme
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -67,13 +62,24 @@ data class SearchState (
     val searchDistance: MutableFloatState = mutableFloatStateOf(0f)
 )
 
+data class AccountState (
+    val dummy: Boolean = true
+)
+
+data class ReviewState (
+    val dummy: Boolean = true
+)
+
 /*
  * ViewModel for the entire application
  * Each page is given its own data class (see SearchState) to manage structure
  */
 class MainViewModel (
     val page: MutableState<Page> = mutableStateOf(Page.Search),
-    val search: SearchState = SearchState()
+
+    val review: ReviewState = ReviewState(),
+    val search: SearchState = SearchState(),
+    val account: AccountState = AccountState()
 ): ViewModel()
 
 class MainActivity : ComponentActivity() {
@@ -151,9 +157,19 @@ fun Root(state: MainViewModel) {
                 }
             }
         ) { innerPadding ->
-            SearchPage(state.search, innerPadding)
+            when (state.page.value) {
+                Page.Review -> ReviewPage(state.review, innerPadding)
+                Page.Search -> SearchPage(state.search, innerPadding)
+                Page.Account -> AccountPage(state.account, innerPadding)
+            }
         }
     }
+}
+
+
+@Composable
+fun ReviewPage(state: ReviewState, innerPadding: PaddingValues) {
+    Text("Review stuff")
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -196,6 +212,11 @@ fun SearchPage(state: SearchState, innerPadding: PaddingValues) {
             Text("Find The Flush!")
         }
     }
+}
+
+@Composable
+fun AccountPage(state: AccountState, innerPadding: PaddingValues) {
+    Text("Account stuff")
 }
 
 @Preview(showBackground = true)
