@@ -5,38 +5,52 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.StarRate
 import androidx.compose.material3.Button
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilterChip
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.MultiChoiceSegmentedButtonRow
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarDefaults
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.NavigationBarItemColors
 import androidx.compose.material3.RangeSlider
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SegmentedButton
+import androidx.compose.material3.SegmentedButtonDefaults
+import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Slider
 import androidx.compose.material3.SliderColors
 import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.SliderState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.VerticalDivider
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.MutableFloatState
+import androidx.compose.runtime.MutableIntState
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
@@ -51,6 +65,7 @@ import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.ViewModel
 import edu.temple.flushfinder.ui.theme.FlushFinderTheme
+import java.util.EnumSet
 
 enum class Page {
     Review,
@@ -58,8 +73,29 @@ enum class Page {
     Account
 }
 
+class Amenities {
+    companion object {
+        val names = listOf(
+            "Changing Station",
+            "Dryer",
+            "Wheelchair Accessible",
+            "Paper",
+        )
+        val ChangingStation = 1
+        val Dryer = 2
+        val Accessible = 4
+        val Paper = 8
+    }
+}
+
 data class SearchState (
-    val searchDistance: MutableFloatState = mutableFloatStateOf(0f)
+    val searchDistance: MutableFloatState = mutableFloatStateOf(0f),
+
+    val accessOptions: List<String> = listOf("Free", "Customers", "Door Code"),
+    val accessSelection: MutableState<List<Boolean>> = mutableStateOf(listOf(false, false, false)),
+
+    val amenitiesOptions: List<String> = Amenities.names,
+    val amenitiesSelection: MutableIntState = mutableIntStateOf(0)
 )
 
 data class AccountState (
@@ -172,6 +208,50 @@ fun ReviewPage(state: ReviewState, innerPadding: PaddingValues) {
     Text("Review stuff")
 }
 
+@Composable
+fun AmenitiesBox(options: List<String>, selected: MutableIntState) {
+    Row(
+        Modifier.padding(20.dp).height(IntrinsicSize.Min),
+        horizontalArrangement = Arrangement.spacedBy(10.dp)
+    ) {
+        Column(
+            horizontalAlignment = Alignment.End
+        ) {
+            options.forEachIndexed { index, string ->
+                if(index.mod(2) == 0) return@forEachIndexed;
+
+                Row(
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(string)
+
+                    Checkbox(selected.intValue and (1 shl index) != 0, {
+                        selected.intValue = selected.intValue xor (1 shl index)
+                    })
+                }
+            }
+        }
+        VerticalDivider()
+        Column(
+            horizontalAlignment = Alignment.End
+        ) {
+            options.forEachIndexed { index, string ->
+                if(index.mod(2) == 1) return@forEachIndexed
+
+                Row(
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(string)
+
+                    Checkbox(selected.intValue and (1 shl index) != 0, {
+                        selected.intValue = selected.intValue xor (1 shl index)
+                    })
+                }
+            }
+        }
+    }
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SearchPage(state: SearchState, innerPadding: PaddingValues) {
@@ -179,7 +259,8 @@ fun SearchPage(state: SearchState, innerPadding: PaddingValues) {
         Modifier
             .padding(innerPadding)
             .fillMaxWidth(),
-        horizontalAlignment = Alignment.CenterHorizontally
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(10.dp)
     ) {
         Text("Search Distance")
         val sliderInteractionSource = remember {
@@ -203,7 +284,43 @@ fun SearchPage(state: SearchState, innerPadding: PaddingValues) {
             },
             steps = 10
         )
+
+        HorizontalDivider()
+
+        Text("Access")
+
+        MultiChoiceSegmentedButtonRow {
+            state.accessOptions.forEachIndexed { index, string ->
+
+                SegmentedButton(
+                    state.accessSelection.value[index],
+                    {
+                        state.accessSelection.value = state.accessSelection.value.mapIndexed { i, v ->
+                            if(index == i) !v
+                            else v
+                        }
+                    },
+                    shape = SegmentedButtonDefaults.itemShape(index, state.accessOptions.size),
+                    colors = SegmentedButtonDefaults.colors(
+                        MaterialTheme.colorScheme.primary,
+                        MaterialTheme.colorScheme.onPrimary,
+                        inactiveContainerColor = MaterialTheme.colorScheme.background,
+                        inactiveContentColor = MaterialTheme.colorScheme.onBackground
+                    )
+                ) {
+                    Text(string)
+                }
+            }
+        }
+
+        HorizontalDivider()
+
+        Text("Amenities")
+
+        AmenitiesBox(state.amenitiesOptions, state.amenitiesSelection)
+
         Spacer(Modifier.weight(1f))
+
         Button(
             {
             },
