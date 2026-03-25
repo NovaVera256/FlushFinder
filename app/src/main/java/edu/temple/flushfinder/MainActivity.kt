@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountCircle
@@ -73,20 +74,14 @@ enum class Page {
     Account
 }
 
-class Amenities {
-    companion object {
-        val names = listOf(
-            "Changing Station",
-            "Dryer",
-            "Wheelchair Accessible",
-            "Paper",
-        )
-        val ChangingStation = 1
-        val Dryer = 2
-        val Accessible = 4
-        val Paper = 8
-    }
-}
+data class Amenities (
+    val paper: MutableState<Boolean> = mutableStateOf(false),
+    val dryer: MutableState<Boolean> = mutableStateOf(false),
+    val accessible: MutableState<Boolean> = mutableStateOf(false),
+    val changingStation: MutableState<Boolean> = mutableStateOf(false),
+    val sanitizer: MutableState<Boolean> = mutableStateOf(false),
+    val soap: MutableState<Boolean> = mutableStateOf(false)
+)
 
 data class SearchState (
     val searchDistance: MutableFloatState = mutableFloatStateOf(0f),
@@ -94,8 +89,10 @@ data class SearchState (
     val accessOptions: List<String> = listOf("Free", "Customers", "Door Code"),
     val accessSelection: MutableState<List<Boolean>> = mutableStateOf(listOf(false, false, false)),
 
-    val amenitiesOptions: List<String> = Amenities.names,
-    val amenitiesSelection: MutableIntState = mutableIntStateOf(0)
+    val amenities: Amenities = Amenities(),
+
+    val searchVisible: MutableState<Boolean> = mutableStateOf(true),
+    val showMap: MutableState<Boolean> = mutableStateOf(false)
 )
 
 data class AccountState (
@@ -208,128 +205,6 @@ fun ReviewPage(state: ReviewState, innerPadding: PaddingValues) {
     Text("Review stuff")
 }
 
-@Composable
-fun AmenitiesBox(options: List<String>, selected: MutableIntState) {
-    Row(
-        Modifier.padding(20.dp).height(IntrinsicSize.Min),
-        horizontalArrangement = Arrangement.spacedBy(10.dp)
-    ) {
-        Column(
-            horizontalAlignment = Alignment.End
-        ) {
-            options.forEachIndexed { index, string ->
-                if(index.mod(2) == 0) return@forEachIndexed;
-
-                Row(
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(string)
-
-                    Checkbox(selected.intValue and (1 shl index) != 0, {
-                        selected.intValue = selected.intValue xor (1 shl index)
-                    })
-                }
-            }
-        }
-        VerticalDivider()
-        Column(
-            horizontalAlignment = Alignment.End
-        ) {
-            options.forEachIndexed { index, string ->
-                if(index.mod(2) == 1) return@forEachIndexed
-
-                Row(
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(string)
-
-                    Checkbox(selected.intValue and (1 shl index) != 0, {
-                        selected.intValue = selected.intValue xor (1 shl index)
-                    })
-                }
-            }
-        }
-    }
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun SearchPage(state: SearchState, innerPadding: PaddingValues) {
-    Column(
-        Modifier
-            .padding(innerPadding)
-            .fillMaxWidth(),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(10.dp)
-    ) {
-        Text("Search Distance")
-        val sliderInteractionSource = remember {
-            MutableInteractionSource()
-        }
-        val sliderState = remember {
-            SliderState(0.2f)
-        }
-
-        Slider(
-            modifier = Modifier.padding(20.dp),
-            value = sliderState.value,
-            onValueChange = {
-                sliderState.value = it
-            },
-            thumb = {
-                SliderDefaults.Thumb(
-                    sliderInteractionSource,
-                    thumbSize = DpSize(20.dp, 20.dp),
-                )
-            },
-            steps = 10
-        )
-
-        HorizontalDivider()
-
-        Text("Access")
-
-        MultiChoiceSegmentedButtonRow {
-            state.accessOptions.forEachIndexed { index, string ->
-
-                SegmentedButton(
-                    state.accessSelection.value[index],
-                    {
-                        state.accessSelection.value = state.accessSelection.value.mapIndexed { i, v ->
-                            if(index == i) !v
-                            else v
-                        }
-                    },
-                    shape = SegmentedButtonDefaults.itemShape(index, state.accessOptions.size),
-                    colors = SegmentedButtonDefaults.colors(
-                        MaterialTheme.colorScheme.primary,
-                        MaterialTheme.colorScheme.onPrimary,
-                        inactiveContainerColor = MaterialTheme.colorScheme.background,
-                        inactiveContentColor = MaterialTheme.colorScheme.onBackground
-                    )
-                ) {
-                    Text(string)
-                }
-            }
-        }
-
-        HorizontalDivider()
-
-        Text("Amenities")
-
-        AmenitiesBox(state.amenitiesOptions, state.amenitiesSelection)
-
-        Spacer(Modifier.weight(1f))
-
-        Button(
-            {
-            },
-            Modifier.fillMaxWidth().padding(10.dp)
-        ) {
-            Text("Find The Flush!")
-        }
-    }
-}
 
 @Composable
 fun AccountPage(state: AccountState, innerPadding: PaddingValues) {
