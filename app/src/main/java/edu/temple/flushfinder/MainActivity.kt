@@ -96,7 +96,10 @@ data class SearchState (
 )
 
 data class AccountState (
-    val dummy: Boolean = true
+    val username: MutableState<String> = mutableStateOf(""),
+    val password: MutableState<String> = mutableStateOf(""),
+    val isLoggedIn: MutableState<Boolean> = mutableStateOf(false),
+    val errorMessage: MutableState<String?> = mutableStateOf(null)
 )
 
 data class ReviewState (
@@ -208,7 +211,7 @@ fun ReviewPage(state: ReviewState, innerPadding: PaddingValues) {
 
 @Composable
 fun AccountPage(state: AccountState, innerPadding: PaddingValues) {
-    Text("Account stuff")
+    LoginPage(state = state, innerPadding = innerPadding)
 }
 
 @Preview(showBackground = true)
