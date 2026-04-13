@@ -17,7 +17,7 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 
 @Composable
-fun LoginPage(state: AccountState, innerPadding: PaddingValues) {
+fun Login(state: AccountState, innerPadding: PaddingValues) {
     Column(
         modifier = Modifier
             .fillMaxSize()

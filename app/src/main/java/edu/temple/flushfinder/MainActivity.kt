@@ -98,7 +98,10 @@ data class SearchState (
 data class AccountState (
     val username: MutableState<String> = mutableStateOf(""),
     val password: MutableState<String> = mutableStateOf(""),
+    val token: MutableState<String?> = mutableStateOf(null),
     val isLoggedIn: MutableState<Boolean> = mutableStateOf(false),
+    val isLoading: MutableState<Boolean> = mutableStateOf(false),
+    val isRegisterMode: MutableState<Boolean> = mutableStateOf(false),
     val errorMessage: MutableState<String?> = mutableStateOf(null)
 )
 
@@ -112,7 +115,6 @@ data class ReviewState (
  */
 class MainViewModel (
     val page: MutableState<Page> = mutableStateOf(Page.Search),
-
     val review: ReviewState = ReviewState(),
     val search: SearchState = SearchState(),
     val account: AccountState = AccountState()
