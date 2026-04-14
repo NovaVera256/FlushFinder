@@ -46,7 +46,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Matrix
 import androidx.compose.ui.graphics.Outline
 import androidx.compose.ui.graphics.Shape
-import androidx.compose.ui.graphics.StampedPathEffectStyle.Companion.Morph
 import androidx.compose.ui.graphics.asComposePath
 import androidx.compose.ui.graphics.copy
 import androidx.compose.ui.tooling.preview.Preview
@@ -68,6 +67,27 @@ import com.google.maps.android.compose.GoogleMap
 import edu.temple.flushfinder.ui.theme.FlushFinderTheme
 import kotlin.math.max
 import kotlin.math.min
+import kotlin.math.roundToInt
+import android.Manifest
+import android.content.Context
+import android.content.pm.PackageManager
+import android.location.Location
+import android.location.LocationManager
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.ui.platform.LocalContext
+import androidx.core.content.ContextCompat
+import com.google.android.gms.maps.CameraUpdateFactory
+import com.google.android.gms.maps.model.LatLng
+import com.google.maps.android.compose.MapProperties
+import com.google.maps.android.compose.Marker
+import com.google.maps.android.compose.MarkerState
+import com.google.maps.android.compose.rememberCameraPositionState
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.rememberScrollState
 
 @Composable
 fun CheckableAmenity(name: String, state: MutableState<Boolean>) {
@@ -76,9 +96,12 @@ fun CheckableAmenity(name: String, state: MutableState<Boolean>) {
     ) {
         Text(name)
 
-        Checkbox(state.value, {
-            state.value = it
-        })
+        androidx.compose.material3.Checkbox(
+            checked = state.value,
+            onCheckedChange = {
+                state.value = it
+            }
+        )
     }
 }
 
@@ -133,14 +156,67 @@ fun AccessBox(options: List<String>, selection: MutableState<List<Boolean>>) {
     }
 }
 
+private fun sliderToBathroomCount(value: Float): Int {
+    return (1 + (value * 9f).roundToInt()).coerceIn(1, 10)
+}
+
+private fun hasLocationPermission(context: Context): Boolean {
+    val fine = ContextCompat.checkSelfPermission(
+        context,
+        Manifest.permission.ACCESS_FINE_LOCATION
+    ) == PackageManager.PERMISSION_GRANTED
+
+    val coarse = ContextCompat.checkSelfPermission(
+        context,Manifest.permission.ACCESS_COARSE_LOCATION
+    ) == PackageManager.PERMISSION_GRANTED
+
+    return fine || coarse
+}
+
+private fun getBestLastKnownLocation(context: Context): Location? {
+
+    val locationManager = context.getSystemService(Context.LOCATION_SERVICE) as LocationManager
+    val providers = listOf(
+        LocationManager.GPS_PROVIDER,
+        LocationManager.NETWORK_PROVIDER,
+        LocationManager.PASSIVE_PROVIDER
+    )
+
+    var bestLocation: Location? = null
+
+    providers.forEach { provider ->
+        try {
+            val location = locationManager.getLastKnownLocation(provider)
+            if (location != null && (bestLocation == null || location.accuracy < bestLocation!!.accuracy)) {
+                bestLocation = location
+            }
+        } catch (_: SecurityException) {
+
+        } catch (_: IllegalArgumentException) {
+
+        }
+    }
+
+    return bestLocation
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun SearchPage(state: SearchState, innerPadding: PaddingValues) {
-    val flushAnimation = animateFloatAsState(
-        if(state.showMap.value) 1f else 0f,
-        spring(stiffness = Spring.StiffnessVeryLow)
-    ) {
-        state.searchVisible.value = false
+fun SearchPage(state: SearchState, innerPadding: PaddingValues, authToken: String?) {
+    val context = LocalContext.current
+    val sliderInteractionSource = remember { MutableInteractionSource() }
+    val sliderState = remember { SliderState(state.searchDistance.floatValue) }
+    val cameraPositionState = rememberCameraPositionState()
+
+    val permissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestMultiplePermissions()
+    ) { permissions ->
+        val granted = permissions[Manifest.permission.ACCESS_FINE_LOCATION] == true ||
+                permissions[Manifest.permission.ACCESS_COARSE_LOCATION] == true
+
+        if (!granted) {
+            state.errorMessage.value = "Location permission is required to search nearby bathrooms."
+        }
     }
 
     val flushed = RoundedPolygon.star(
@@ -156,51 +232,95 @@ fun SearchPage(state: SearchState, innerPadding: PaddingValues) {
             -1f, 1f
         )
     )
-    val flushPath = Morph(start = full, end = flushed).toPath(flushAnimation.value).asComposePath()
+    val flushPath = Morph(start = full, end = flushed).toPath(0f).asComposePath()
 
-    val flushShape = object: Shape {
+    val flushShape = object : Shape {
         override fun createOutline(
             size: Size,
             layoutDirection: LayoutDirection,
             density: Density
         ): Outline {
             val path = flushPath.copy()
-            var matrix = Matrix()
+            val matrix = Matrix()
             matrix.reset()
-            val bounds = path.getBounds()//full.calculateBounds().let { Rect(it[0], it[1], it[2], it[3]) }
+            val bounds = path.getBounds()
             val minDimension = min(size.width, size.height)
             matrix.scale(minDimension / bounds.width, size.height / bounds.height)
             matrix.translate(-bounds.left, -bounds.top)
-            matrix.scale((1f-flushAnimation.value), (1f-flushAnimation.value))
-            matrix.rotateZ(360*flushAnimation.value)
             path.transform(matrix)
             return Outline.Generic(path)
         }
-
     }
-    Box {
-        Card {
-            Text("THIS IS THE MAP")
-        }
-        //GoogleMap()
 
-        if (state.searchVisible.value) Column(
-            Modifier
-                .padding(innerPadding)
+    val userLatLng = if (state.userLatitude.value != null && state.userLongitude.value != null) {
+        LatLng(state.userLatitude.value!!, state.userLongitude.value!!)
+    } else {
+        null
+    }
+
+    LaunchedEffect(state.results.value, state.userLatitude.value, state.userLongitude.value, state.showMap.value) {
+        if (state.showMap.value) {
+            val target = when {
+                state.results.value.isNotEmpty() -> LatLng(
+                    state.results.value.first().latitude,
+                    state.results.value.first().longitude
+                )
+
+                userLatLng != null -> userLatLng
+
+                else -> LatLng(39.9526, -75.1652)
+            }
+
+            cameraPositionState.move(
+                CameraUpdateFactory.newLatLngZoom(target, 14f)
+            )
+        }
+    }
+
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(innerPadding)
+    ) {
+        if (state.showMap.value) {
+            GoogleMap(
+                modifier = Modifier.fillMaxSize(),
+                cameraPositionState = cameraPositionState,
+                properties = MapProperties(
+                    isMyLocationEnabled = hasLocationPermission(context)
+                )
+            ) {
+                userLatLng?.let {
+                    Marker(
+                        state = MarkerState(position = it),
+                        title = "You are here"
+                    )
+                }
+
+                state.results.value.forEach { bathroom ->
+                    Marker(
+                        state = MarkerState(
+                            position = LatLng(bathroom.latitude, bathroom.longitude)
+                        ),
+                        title = "Bathroom #${bathroom.bathroomId}",
+                        snippet = bathroom.rating?.let { rating -> "Rating: $rating" } ?: "No rating"
+                    )
+                }
+            }
+        }
+
+        Column(
+            modifier = Modifier
                 .fillMaxWidth()
-                //.background(Color.Red)
-                .clip(flushShape)
-                .background(Color.White),
+                .verticalScroll(rememberScrollState())
+                .clip(RoundedCornerShape(24.dp))
+                .background(Color.White.copy(alpha = 0.96f))
+                .padding(12.dp)
+                .align(Alignment.TopCenter),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
             Text("Search Distance")
-            val sliderInteractionSource = remember {
-                MutableInteractionSource()
-            }
-            val sliderState = remember {
-                SliderState(0.2f)
-            }
 
             Column(
                 horizontalAlignment = Alignment.CenterHorizontally,
@@ -211,37 +331,99 @@ fun SearchPage(state: SearchState, innerPadding: PaddingValues) {
                     value = sliderState.value,
                     onValueChange = {
                         sliderState.value = it
+                        state.searchDistance.floatValue = it
                     },
+                    valueRange = 0f..1f,
                     thumb = {
                         SliderDefaults.Thumb(
-                            sliderInteractionSource,
-                            thumbSize = DpSize(20.dp, 20.dp),
+                            interactionSource = sliderInteractionSource,
+                            thumbSize = DpSize(20.dp, 20.dp)
                         )
-                    },
-                    steps = 9,
+                    }
                 )
-                Text("Nearest ${sliderState.value} bathrooms", Modifier.offset(y = -20.dp))
+                Text(
+                    text = "Nearest ${sliderToBathroomCount(sliderState.value)} bathrooms",
+                    modifier = Modifier.offset(y = (-20).dp)
+                )
             }
 
             HorizontalDivider()
 
             Text("Access")
-
             AccessBox(state.accessOptions, state.accessSelection)
 
             HorizontalDivider()
 
             Text("Amenities")
-
             AmenitiesBox(state.amenities)
 
-            Spacer(Modifier.weight(1f))
+            state.errorMessage.value?.let {
+                Text(
+                    text = it,
+                    color = MaterialTheme.colorScheme.error
+                )
+            }
+
+            if (state.isSearching.value) {
+                CircularProgressIndicator()
+            }
+
+            Spacer(Modifier.height(4.dp))
 
             Button(
-                {
+                onClick = {
+                    if (!hasLocationPermission(context)) {
+                        permissionLauncher.launch(
+                            arrayOf(
+                                Manifest.permission.ACCESS_FINE_LOCATION,
+                                Manifest.permission.ACCESS_COARSE_LOCATION
+                            )
+                        )
+                        return@Button
+                    }
+
+                    val location = getBestLastKnownLocation(context)
+                    if (location == null) {
+                        state.errorMessage.value = "Unable to get your current location yet. Try again in a moment."
+                        return@Button
+                    }
+
+                    state.userLatitude.value = location.latitude
+                    state.userLongitude.value = location.longitude
+                    state.isSearching.value = true
+                    state.errorMessage.value = null
                     state.showMap.value = true
+
+                    if (authToken.isNullOrBlank()) {
+                        state.errorMessage.value = "Please log in before searching."
+                        return@Button
+                    }
+
+                    SearchApi.searchLocations(
+                        number = sliderToBathroomCount(sliderState.value),
+                        latitude = location.latitude,
+                        longitude = location.longitude,
+                        changingStation = state.amenities.changingStation.value,
+                        airDryer = state.amenities.dryer.value,
+                        paperTowels = state.amenities.paper.value,
+                        wheelchair = state.amenities.accessible.value,
+                        token = authToken
+                    ) { response ->
+                        state.isSearching.value = false
+
+                        if (response.error != null) {
+                            state.errorMessage.value = response.error
+                            state.results.value = emptyList()
+                        } else {
+                            state.errorMessage.value = null
+                            state.results.value = response.results
+                        }
+                    }
                 },
-                Modifier.fillMaxWidth().padding(10.dp)
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(10.dp),
+                enabled = !state.isSearching.value
             ) {
                 Text("Find The Flush!")
             }
@@ -249,10 +431,14 @@ fun SearchPage(state: SearchState, innerPadding: PaddingValues) {
     }
 }
 
-@Preview(showBackground = true)
+@androidx.compose.ui.tooling.preview.Preview(showBackground = true)
 @Composable
 fun SearchPagePreview() {
     FlushFinderTheme {
-        SearchPage(SearchState(), PaddingValues())
+        SearchPage(
+            state = SearchState(),
+            innerPadding = PaddingValues(),
+            authToken = null
+        )
     }
 }

@@ -85,14 +85,16 @@ data class Amenities (
 
 data class SearchState (
     val searchDistance: MutableFloatState = mutableFloatStateOf(0f),
-
     val accessOptions: List<String> = listOf("Free", "Customers", "Door Code"),
     val accessSelection: MutableState<List<Boolean>> = mutableStateOf(listOf(false, false, false)),
-
     val amenities: Amenities = Amenities(),
-
     val searchVisible: MutableState<Boolean> = mutableStateOf(true),
-    val showMap: MutableState<Boolean> = mutableStateOf(false)
+    val showMap: MutableState<Boolean> = mutableStateOf(false),
+    val isSearching: MutableState<Boolean> = mutableStateOf(false),
+    val errorMessage: MutableState<String?> = mutableStateOf(null),
+    val results: MutableState<List<BathroomLocation>> = mutableStateOf(emptyList()),
+    val userLatitude: MutableState<Double?> = mutableStateOf(null),
+    val userLongitude: MutableState<Double?> = mutableStateOf(null)
 )
 
 data class AccountState (
@@ -107,6 +109,17 @@ data class AccountState (
 
 data class ReviewState (
     val dummy: Boolean = true
+)
+
+data class BathroomLocation(
+    val bathroomId: Int,
+    val latitude: Double,
+    val longitude: Double,
+    val rating: Double?,
+    val changingStation: Boolean?,
+    val airDryer: Boolean?,
+    val paperTowels: Boolean?,
+    val wheelchair: Boolean?
 )
 
 /*
@@ -197,7 +210,11 @@ fun Root(state: MainViewModel) {
         ) { innerPadding ->
             when (state.page.value) {
                 Page.Review -> ReviewPage(state.review, innerPadding)
-                Page.Search -> SearchPage(state.search, innerPadding)
+                Page.Search -> SearchPage(
+                    state = state.search,
+                    innerPadding = innerPadding,
+                    authToken = state.account.token.value
+                )
                 Page.Account -> AccountPage(state.account, innerPadding)
             }
         }
