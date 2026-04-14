@@ -74,12 +74,17 @@ import kotlin.math.max
 import kotlin.math.min
 import kotlin.math.roundToInt
 import android.Manifest
+import android.content.ComponentCallbacks
 import android.content.Context
 import android.content.pm.PackageManager
 import android.location.Location
 import android.location.LocationManager
+import androidx.activity.ComponentActivity
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.AnimationEndReason
 import androidx.compose.animation.core.tween
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.platform.LocalContext
@@ -94,8 +99,10 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.draw.scale
+import kotlinx.coroutines.launch
 
 @Composable
 fun CheckableAmenity(name: String, state: MutableState<Boolean>) {
@@ -211,6 +218,7 @@ private fun getBestLastKnownLocation(context: Context): Location? {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SearchPage(state: SearchState, innerPadding: PaddingValues, authToken: String?) {
+    val scope = rememberCoroutineScope()
     val context = LocalContext.current
     val sliderInteractionSource = remember { MutableInteractionSource() }
     val sliderState = remember { SliderState(state.searchDistance.floatValue) }
@@ -227,13 +235,12 @@ fun SearchPage(state: SearchState, innerPadding: PaddingValues, authToken: Strin
         }
     }
 
-    val flushAnimation = animateFloatAsState(
-        if(state.showMap.value) 1f else 0f,
-        tween(1500, easing={
-            it*it
-        })
-    ) {
-        state.searchVisible.value = false
+    val flushAnimation = remember { Animatable(0f) }
+
+    BackHandler(state.showMap.value) {
+        state.searchVisible.value = true
+        state.showMap.value = false
+        scope.launch { flushAnimation.snapTo(0f) }
     }
 
     val flushed = RoundedPolygon.star(
@@ -412,15 +419,29 @@ fun SearchPage(state: SearchState, innerPadding: PaddingValues, authToken: Strin
                         return@Button
                     }
 
-                    state.userLatitude.value = location.latitude
-                    state.userLongitude.value = location.longitude
-                    state.isSearching.value = true
-                    state.errorMessage.value = null
-                    state.showMap.value = true
+
 
                     if (authToken.isNullOrBlank()) {
                         state.errorMessage.value = "Please log in before searching."
                         return@Button
+                    }
+
+                    state.userLatitude.value = location.latitude
+                    state.userLongitude.value = location.longitude
+                    state.isSearching.value = true
+                    state.errorMessage.value = null
+
+                    scope.launch {
+                        state.showMap.value = true
+                        if(flushAnimation.animateTo(
+                            1f,
+                            tween(
+                                1500,
+                                easing = Easing {it*it}
+                            )
+                        ).endReason == AnimationEndReason.Finished) {
+                            state.searchVisible.value = false
+                        }
                     }
 
                     SearchApi.searchLocations(
