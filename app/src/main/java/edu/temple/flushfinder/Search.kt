@@ -1,9 +1,12 @@
 package edu.temple.flushfinder
 
 import androidx.compose.animation.core.AnimationSpec
+import androidx.compose.animation.core.Easing
+import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
@@ -13,6 +16,7 @@ import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
@@ -46,6 +50,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Matrix
 import androidx.compose.ui.graphics.Outline
 import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.graphics.StampedPathEffectStyle.Companion.Morph
 import androidx.compose.ui.graphics.asComposePath
 import androidx.compose.ui.graphics.copy
 import androidx.compose.ui.tooling.preview.Preview
@@ -75,6 +80,7 @@ import android.location.Location
 import android.location.LocationManager
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.core.tween
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.platform.LocalContext
 import androidx.core.content.ContextCompat
@@ -88,6 +94,8 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.ui.draw.rotate
+import androidx.compose.ui.draw.scale
 
 @Composable
 fun CheckableAmenity(name: String, state: MutableState<Boolean>) {
@@ -219,6 +227,15 @@ fun SearchPage(state: SearchState, innerPadding: PaddingValues, authToken: Strin
         }
     }
 
+    val flushAnimation = animateFloatAsState(
+        if(state.showMap.value) 1f else 0f,
+        tween(1500, easing={
+            it*it
+        })
+    ) {
+        state.searchVisible.value = false
+    }
+
     val flushed = RoundedPolygon.star(
         11,
         rounding = CornerRounding(0.03f)
@@ -232,7 +249,7 @@ fun SearchPage(state: SearchState, innerPadding: PaddingValues, authToken: Strin
             -1f, 1f
         )
     )
-    val flushPath = Morph(start = full, end = flushed).toPath(0f).asComposePath()
+    val flushPath = Morph(start = full, end = flushed).toPath(flushAnimation.value*0.75f).asComposePath()
 
     val flushShape = object : Shape {
         override fun createOutline(
@@ -247,6 +264,8 @@ fun SearchPage(state: SearchState, innerPadding: PaddingValues, authToken: Strin
             val minDimension = min(size.width, size.height)
             matrix.scale(minDimension / bounds.width, size.height / bounds.height)
             matrix.translate(-bounds.left, -bounds.top)
+            //matrix.scale((1f-flushAnimation.value), (1f-flushAnimation.value))
+            //matrix.rotateZ(360*flushAnimation.value)
             path.transform(matrix)
             return Outline.Generic(path)
         }
@@ -309,14 +328,19 @@ fun SearchPage(state: SearchState, innerPadding: PaddingValues, authToken: Strin
             }
         }
 
-        Column(
+        if(state.searchVisible.value) Column(
             modifier = Modifier
                 .fillMaxWidth()
                 .verticalScroll(rememberScrollState())
                 .clip(RoundedCornerShape(24.dp))
-                .background(Color.White.copy(alpha = 0.96f))
                 .padding(12.dp)
-                .align(Alignment.TopCenter),
+                .align(Alignment.TopCenter)
+                .rotate(360*flushAnimation.value)
+                .scale(1-flushAnimation.value)
+                //.background(Color.Red.copy(alpha=flushAnimation.value))
+                .clip(flushShape)
+                .background(MaterialTheme.colorScheme.background)
+                .background(Color.Blue.copy(alpha=flushAnimation.value)),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {

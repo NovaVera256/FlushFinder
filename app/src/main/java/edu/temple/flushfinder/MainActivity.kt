@@ -64,6 +64,9 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
+import androidx.core.view.WindowCompat
+import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.WindowInsetsControllerCompat
 import androidx.lifecycle.ViewModel
 import edu.temple.flushfinder.ui.theme.FlushFinderTheme
 import java.util.EnumSet
@@ -85,9 +88,12 @@ data class Amenities (
 
 data class SearchState (
     val searchDistance: MutableFloatState = mutableFloatStateOf(0f),
+
     val accessOptions: List<String> = listOf("Free", "Customers", "Door Code"),
     val accessSelection: MutableState<List<Boolean>> = mutableStateOf(listOf(false, false, false)),
+
     val amenities: Amenities = Amenities(),
+
     val searchVisible: MutableState<Boolean> = mutableStateOf(true),
     val showMap: MutableState<Boolean> = mutableStateOf(false),
     val isSearching: MutableState<Boolean> = mutableStateOf(false),
@@ -139,6 +145,10 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+        WindowCompat.getInsetsController(window, window.decorView).run{
+            hide(WindowInsetsCompat.Type.navigationBars())
+            systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+        }
         setContent {
             Root(viewmodel)
         }

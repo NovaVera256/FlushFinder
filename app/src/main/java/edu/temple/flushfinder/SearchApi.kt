@@ -1,5 +1,6 @@
 package edu.temple.flushfinder
 
+import android.net.Uri
 import android.os.Handler
 import android.os.Looper
 import org.json.JSONArray
@@ -10,6 +11,7 @@ import java.io.OutputStreamWriter
 import java.net.HttpURLConnection
 import java.net.URL
 import kotlin.concurrent.thread
+import androidx.core.net.toUri
 
 data class SearchResponse(
     val results: List<BathroomLocation> = emptyList(),
@@ -33,36 +35,27 @@ object SearchApi {
     ) {
         thread {
             try {
-                val bodyJson = JSONObject().apply {
-                    put("number", number)
-                    put("latitude", latitude)
-                    put("longitude", longitude)
-                    put("changing_station", changingStation)
-                    put("air_dryer", airDryer)
-                    put("paper_towels", paperTowels)
-                    put("wheelchair", wheelchair)
-                }
 
-                val bodyBytes = bodyJson.toString().toByteArray(Charsets.UTF_8)
-
-                val connection = (URL(SEARCH_URL).openConnection() as HttpURLConnection).apply {
+                val connection = (URL(SEARCH_URL.toUri()
+                    .buildUpon()
+                    .appendQueryParameter("number", number.toString())
+                    .appendQueryParameter("latitude", latitude.toString())
+                    .appendQueryParameter("longitude", longitude.toString())
+                    .appendQueryParameter("changing_station", changingStation.toString())
+                    .appendQueryParameter("air_dryer", airDryer.toString())
+                    .appendQueryParameter("paper_towels", paperTowels.toString())
+                    .appendQueryParameter("wheelchair", wheelchair.toString())
+                    .toString()
+                ).openConnection() as HttpURLConnection).apply {
                     requestMethod = "GET"
                     doInput = true
-                    doOutput = true
                     useCaches = false
                     connectTimeout = 15000
                     readTimeout = 15000
-                    setRequestProperty("Content-Type", "application/json")
                     setRequestProperty("Accept", "application/json")
-                    setRequestProperty("Content-Length", bodyBytes.size.toString())
                     if (!token.isNullOrBlank()) {
                         setRequestProperty("Authorization", "Bearer $token")
                     }
-                }
-
-                OutputStreamWriter(connection.outputStream, Charsets.UTF_8).use { writer ->
-                    writer.write(bodyJson.toString())
-                    writer.flush()
                 }
 
                 val stream = if (connection.responseCode in 200..299) {

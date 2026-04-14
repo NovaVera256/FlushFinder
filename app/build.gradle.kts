@@ -1,6 +1,16 @@
+import org.jetbrains.kotlin.konan.properties.Properties
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
+}
+
+val localProperties = Properties()
+val localPropertiesFile = File(rootDir, "secrets.properties")
+if (localPropertiesFile.exists() && localPropertiesFile.isFile) {
+    localPropertiesFile.inputStream().use {
+        localProperties.load(it)
+    }
 }
 
 android {
@@ -29,6 +39,10 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
+            resValue("string", "google_maps_api_key", localProperties.getProperty("MAPS_API_KEY"))
+        }
+        debug {
+            resValue("string", "google_maps_api_key", localProperties.getProperty("MAPS_API_KEY"))
         }
     }
     compileOptions {
@@ -37,6 +51,7 @@ android {
     }
     buildFeatures {
         compose = true
+        resValues = true
     }
 }
 
