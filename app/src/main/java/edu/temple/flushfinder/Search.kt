@@ -316,24 +316,19 @@ fun SearchPage(state: SearchState, innerPadding: PaddingValues, authToken: Strin
                     isMyLocationEnabled = hasLocationPermission(context)
                 )
             ) {
-                userLatLng?.let {
-                    Marker(
-                        state = MarkerState(position = it),
-                        title = "You are here"
-                    )
-                }
-
                 state.results.value.forEach { bathroom ->
                     Marker(
                         state = MarkerState(
                             position = LatLng(bathroom.latitude, bathroom.longitude)
                         ),
-                        title = "Bathroom #${bathroom.name}",
+                        title = bathroom.name,
                         snippet = bathroom.rating?.let { rating -> "Rating: $rating" } ?: "No rating"
                     )
                 }
             }
         }
+
+        //TODO: add tray
 
         if(state.searchVisible.value) Column(
             modifier = Modifier
