@@ -119,6 +119,7 @@ data class ReviewState (
 
 data class BathroomLocation(
     val bathroomId: Int,
+    val name: String,
     val latitude: Double,
     val longitude: Double,
     val rating: Double?,

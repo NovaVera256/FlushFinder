@@ -328,7 +328,7 @@ fun SearchPage(state: SearchState, innerPadding: PaddingValues, authToken: Strin
                         state = MarkerState(
                             position = LatLng(bathroom.latitude, bathroom.longitude)
                         ),
-                        title = "Bathroom #${bathroom.bathroomId}",
+                        title = "Bathroom #${bathroom.name}",
                         snippet = bathroom.rating?.let { rating -> "Rating: $rating" } ?: "No rating"
                     )
                 }
