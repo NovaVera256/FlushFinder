@@ -74,6 +74,7 @@ import kotlin.math.max
 import kotlin.math.min
 import kotlin.math.roundToInt
 import android.Manifest
+import android.R
 import android.content.ComponentCallbacks
 import android.content.Context
 import android.content.pm.PackageManager
@@ -86,6 +87,7 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.AnimationEndReason
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.platform.LocalContext
 import androidx.core.content.ContextCompat
@@ -96,12 +98,18 @@ import com.google.maps.android.compose.Marker
 import com.google.maps.android.compose.MarkerState
 import com.google.maps.android.compose.rememberCameraPositionState
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.material3.FilterChip
+import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.draw.scale
+import androidx.compose.ui.text.style.TextAlign
+import com.google.android.gms.maps.model.Marker
 import kotlinx.coroutines.launch
 
 @Composable
@@ -171,6 +179,51 @@ fun AccessBox(options: List<String>, selection: MutableState<List<Boolean>>) {
     }
 }
 
+@Composable
+fun amenityChip(name: String) {
+    FilterChip(
+        onClick = {},
+        selected = true,
+        label = {Text(name)}
+    )
+}
+
+@Composable
+fun review(user: String, text: String) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(6.dp)
+            .background(color = Color(0xFFFFFFFF)),
+    ) {
+        Row(
+            horizontalArrangement = Arrangement.SpaceBetween,
+            modifier = Modifier
+                .padding(4.dp)
+        ) {
+            Text(text = user,
+                textAlign = TextAlign.Left,
+                color = MaterialTheme.colorScheme.onPrimary,
+                modifier = Modifier
+                    .padding(4.dp))
+            Text(text = "4/5",
+                textAlign = TextAlign.Right,
+                color = MaterialTheme.colorScheme.onPrimary,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(4.dp)
+            )
+        }
+
+        Text(text = text,
+            textAlign = TextAlign.Left,
+            color = MaterialTheme.colorScheme.onPrimary,
+            modifier = Modifier
+                .padding(4.dp)
+        )
+    }
+}
+
 private fun sliderToBathroomCount(value: Float): Int {
     return (1 + (value * 9f).roundToInt()).coerceIn(1, 10)
 }
@@ -223,6 +276,9 @@ fun SearchPage(state: SearchState, innerPadding: PaddingValues, authToken: Strin
     val sliderInteractionSource = remember { MutableInteractionSource() }
     val sliderState = remember { SliderState(state.searchDistance.floatValue) }
     val cameraPositionState = rememberCameraPositionState()
+
+    val clickedBathroom: MutableState<BathroomLocation?> = remember { mutableStateOf(null)
+    }
 
     val permissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions()
@@ -308,6 +364,8 @@ fun SearchPage(state: SearchState, innerPadding: PaddingValues, authToken: Strin
             .fillMaxSize()
             .padding(innerPadding)
     ) {
+
+
         if (state.showMap.value) {
             GoogleMap(
                 modifier = Modifier.fillMaxSize(),
@@ -322,8 +380,86 @@ fun SearchPage(state: SearchState, innerPadding: PaddingValues, authToken: Strin
                             position = LatLng(bathroom.latitude, bathroom.longitude)
                         ),
                         title = bathroom.name,
-                        snippet = bathroom.rating?.let { rating -> "Rating: $rating" } ?: "No rating"
+                        snippet = bathroom.rating?.let { rating -> "Rating: $rating" } ?: "No rating",
+                        onClick = { marker ->
+                            clickedBathroom.value = bathroom
+                            true
+                        }
                     )
+                }
+            }
+        }
+
+        clickedBathroom.value?.let { bathroom ->
+            ModalBottomSheet(
+                onDismissRequest = {
+                    clickedBathroom.value = null
+                },
+
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .clip(RoundedCornerShape(24.dp))
+                        .padding(12.dp)
+                        .background(MaterialTheme.colorScheme.background),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(10.dp),
+                ) {
+                    Text(text = "Bathroom at " + bathroom.name, color = MaterialTheme.colorScheme.onPrimary)
+                    if(bathroom.rating != null)
+                        Text(text = bathroom.rating.toString() + "/5.0", color = MaterialTheme.colorScheme.onPrimary)
+                    else
+                        Text(text = "unrated/5.0", color = MaterialTheme.colorScheme.onPrimary)
+
+                    HorizontalDivider()
+
+                    var access: String = "No Access"
+                    if(bathroom.bathroomId == 1) access = "Free"
+                    else if (bathroom.bathroomId == 2) access = "Customers"
+                    else if (bathroom.bathroomId == 1) access = "Door Code"
+                    Text(text = "Access: " + access, color = MaterialTheme.colorScheme.onPrimary)
+                    if(clickedBathroom.value!!.wheelchair == true) Text(text = "Is wheelchair accessible!", color = MaterialTheme.colorScheme.onPrimary)
+                    else Text(text = "Is NOT wheelchair accessible.", color = MaterialTheme.colorScheme.onPrimary)
+
+                    HorizontalDivider()
+
+                    Text(text = "Has:", color = MaterialTheme.colorScheme.onPrimary)
+                    Row() {
+                        if (bathroom.paperTowels == true) amenityChip("Paper Towels")
+                        if (bathroom.airDryer == true) amenityChip("Air Dryer")
+                        if (bathroom.changingStation == true) amenityChip("Baby Changing Station")
+                    }
+
+                    HorizontalDivider()
+
+                    //Create review button
+                    //list of reviews
+
+                    Button(
+                        modifier = Modifier.fillMaxWidth(),
+                        onClick = {
+                            //open review activity
+                        }
+                    ) {
+                        Text("Review a Bathroom")
+                    }
+
+                    LazyColumn(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .fillMaxHeight()
+                            .background(color  = MaterialTheme.colorScheme.secondaryContainer)
+                            .height(65.dp),
+                        contentPadding = PaddingValues(4.dp, 4.dp)
+
+                    ) {
+                        item{
+                            review("Jimmy John", "THis bathroom was fire lowkey")
+                            review("Stephen Hawking", "beep beep boop bop")
+                            review("Klorb2", "I frowed up here")
+                        }
+                    }
                 }
             }
         }
@@ -480,5 +616,100 @@ fun SearchPagePreview() {
             innerPadding = PaddingValues(),
             authToken = null
         )
+    }
+}
+
+@Preview(showBackground = true)
+@Composable
+fun previewAmenityThing() {
+    amenityChip("poop")
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Preview(showBackground = true)
+@Composable
+fun previewTray() {
+    val bathroom: BathroomLocation = BathroomLocation(
+        0,
+        "The Bookstore on Cecil",
+        15.0,
+        15.0,
+        4.5,
+        true,
+        false,
+        true,
+        true,
+    )
+
+    ModalBottomSheet(
+        onDismissRequest = {
+            //clickedBathroom.value = null
+        },
+
+        ) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .clip(RoundedCornerShape(24.dp))
+                .padding(12.dp)
+                .background(MaterialTheme.colorScheme.background),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
+            Text(text = "Bathroom at " + bathroom.name, color = MaterialTheme.colorScheme.onPrimary)
+            if(bathroom.rating != null)
+                Text(text = bathroom.rating.toString() + "/5.0", color = MaterialTheme.colorScheme.onPrimary)
+            else
+                Text(text = "unrated/5.0", color = MaterialTheme.colorScheme.onPrimary)
+
+            HorizontalDivider()
+
+            var access: String = "No Access"
+            if(bathroom.bathroomId == 1) access = "Free"
+            else if (bathroom.bathroomId == 2) access = "Customers"
+            else if (bathroom.bathroomId == 1) access = "Door Code"
+            Text(text = "Access: " + access, color = MaterialTheme.colorScheme.onPrimary)
+            if(bathroom.wheelchair == true) Text(text = "Is wheelchair accessible!", color = MaterialTheme.colorScheme.onPrimary)
+            else Text(text = "Is NOT wheelchair accessible.", color = MaterialTheme.colorScheme.onPrimary)
+
+            HorizontalDivider()
+
+            Text(text = "Has:", color = MaterialTheme.colorScheme.onPrimary)
+            Row() {
+                if (bathroom.paperTowels == true) amenityChip("Paper Towels")
+                if (bathroom.airDryer == true) amenityChip("Air Dryer")
+                if (bathroom.changingStation == true) amenityChip("Baby Changing Station")
+            }
+
+            HorizontalDivider()
+
+            //Create review button
+            //list of reviews
+
+            Button(
+                modifier = Modifier.fillMaxWidth(),
+                onClick = {
+                    //open review activity
+                }
+            ) {
+                Text("Review a Bathroom")
+            }
+
+            LazyColumn(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .fillMaxHeight()
+                    .background(color  = MaterialTheme.colorScheme.secondaryContainer)
+                    .height(65.dp),
+                contentPadding = PaddingValues(4.dp, 4.dp)
+
+            ) {
+                item{
+                    review("Jimmy John", "THis bathroom was fire lowkey")
+                    review("Stephen Hawking", "beep beep boop bop")
+                    review("Klorb2", "I frowed up here")
+                }
+            }
+        }
     }
 }
