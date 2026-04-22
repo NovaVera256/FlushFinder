@@ -109,6 +109,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.window.Dialog
 import com.google.android.gms.maps.model.Marker
 import kotlinx.coroutines.launch
 
@@ -440,6 +441,7 @@ fun SearchPage(state: SearchState, innerPadding: PaddingValues, authToken: Strin
                         modifier = Modifier.fillMaxWidth(),
                         onClick = {
                             //open review activity
+                            state.reviewing.value = true
                         }
                     ) {
                         Text("Review a Bathroom")
@@ -464,7 +466,13 @@ fun SearchPage(state: SearchState, innerPadding: PaddingValues, authToken: Strin
             }
         }
 
-        //TODO: add tray
+        if(state.reviewing.value == true) {
+            Dialog(
+                onDismissRequest = { state.reviewing.value = false }
+            ) {
+                Review(state, clickedBathroom.value)
+            }
+        }
 
         if(state.searchVisible.value) Column(
             modifier = Modifier
