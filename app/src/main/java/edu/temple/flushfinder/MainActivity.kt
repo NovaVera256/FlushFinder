@@ -164,7 +164,7 @@ class MainActivity : ComponentActivity() {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun Root(state: MainViewModel) {
-    FlushFinderTheme {
+    FlushFinderTheme(true) {
         Scaffold(
             topBar = {
                 TopAppBar({

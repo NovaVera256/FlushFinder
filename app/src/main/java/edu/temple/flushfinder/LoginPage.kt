@@ -10,12 +10,16 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
+import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import edu.temple.flushfinder.ui.theme.FlushFinderTheme
 
 @Composable
 fun LoginPage(state: AccountState, innerPadding: PaddingValues) {
@@ -59,7 +63,13 @@ fun LoginPage(state: AccountState, innerPadding: PaddingValues) {
                 label = { Text("Username") },
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth(),
-                enabled = !state.isLoading.value
+                enabled = !state.isLoading.value,
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedTextColor = MaterialTheme.colorScheme.secondary,
+                    focusedBorderColor = MaterialTheme.colorScheme.secondary,
+                    focusedLabelColor = MaterialTheme.colorScheme.secondary,
+                    cursorColor = MaterialTheme.colorScheme.secondary
+                )
             )
 
             OutlinedTextField(
@@ -72,7 +82,13 @@ fun LoginPage(state: AccountState, innerPadding: PaddingValues) {
                 singleLine = true,
                 visualTransformation = PasswordVisualTransformation(),
                 modifier = Modifier.fillMaxWidth(),
-                enabled = !state.isLoading.value
+                enabled = !state.isLoading.value,
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedTextColor = MaterialTheme.colorScheme.secondary,
+                    focusedBorderColor = MaterialTheme.colorScheme.secondary,
+                    focusedLabelColor = MaterialTheme.colorScheme.secondary,
+                    cursorColor = MaterialTheme.colorScheme.secondary
+                )
             )
 
             state.errorMessage.value?.let {
@@ -139,9 +155,21 @@ fun LoginPage(state: AccountState, innerPadding: PaddingValues) {
                         "Already have an account? Log In"
                     } else {
                         "Need an account? Create Account"
-                    }
+                    },
+                    color = MaterialTheme.colorScheme.secondary
                 )
             }
         }
     }
+}
+
+@Preview
+@Composable
+fun LoginPreview() {
+    FlushFinderTheme(true) {
+        Scaffold {
+            LoginPage(AccountState(), it)
+        }
+    }
+
 }

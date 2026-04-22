@@ -40,7 +40,6 @@ import androidx.compose.material3.VerticalDivider
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.remember
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawWithCache
@@ -102,10 +101,19 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.Accessible
+import androidx.compose.material.icons.filled.Accessible
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material.icons.filled.LockOpen
+import androidx.compose.material.icons.filled.NotAccessible
 import androidx.compose.material3.FilterChip
+import androidx.compose.material3.Icon
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.text.style.TextAlign
@@ -132,7 +140,9 @@ fun CheckableAmenity(name: String, state: MutableState<Boolean>) {
 @Composable
 fun AmenitiesBox(state: Amenities) {
     Row(
-        Modifier.padding(20.dp).height(IntrinsicSize.Min),
+        Modifier
+            .padding(20.dp)
+            .height(IntrinsicSize.Min),
         horizontalArrangement = Arrangement.spacedBy(10.dp)
     ) {
         Column(
@@ -191,37 +201,135 @@ fun AmenityChip(name: String) {
 
 @Composable
 fun Review(user: String, text: String) {
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(6.dp)
-            .background(color = Color(0xFFFFFFFF)),
-    ) {
-        Row(
-            horizontalArrangement = Arrangement.SpaceBetween,
+    Card {
+        Column(
             modifier = Modifier
-                .padding(4.dp)
+                .fillMaxWidth()
+                .padding(10.dp),
         ) {
-            Text(text = user,
+            Row(
+                horizontalArrangement = Arrangement.SpaceBetween,
+            ) {
+                Text(
+                    text = user,
+                    textAlign = TextAlign.Left,
+                    style = MaterialTheme.typography.bodySmall
+                )
+                Spacer(Modifier.weight(1f))
+                //TODO: Star Rating composable
+                Text(
+                    text = "4/5",
+                )
+            }
+
+            Text(
+                text = text,
                 textAlign = TextAlign.Left,
-                color = MaterialTheme.colorScheme.onPrimary,
-                modifier = Modifier
-                    .padding(4.dp))
-            Text(text = "4/5",
-                textAlign = TextAlign.Right,
-                color = MaterialTheme.colorScheme.onPrimary,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(4.dp)
             )
         }
+    }
+}
 
-        Text(text = text,
-            textAlign = TextAlign.Left,
-            color = MaterialTheme.colorScheme.onPrimary,
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun BathroomDetails(bathroom: BathroomLocation, onReview: () -> Unit) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(MaterialTheme.colorScheme.background)
+            .padding(12.dp),
+        horizontalAlignment = Alignment.Start,
+        verticalArrangement = Arrangement.spacedBy(10.dp)
+    ) {
+        Row(
+            Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Text(
+                text = bathroom.name,
+                style = MaterialTheme.typography.titleLarge
+            )
+            if (bathroom.rating != null)
+                Text(
+                    text = bathroom.rating.toString() + "/5.0",
+                )
+            else
+                Text(text = "unrated/5.0")
+        }
+
+
+        Row {
+            //TODO: use customerOnly field
+            if (bathroom.bathroomId == 1) {
+                Icon(Icons.Default.Lock, null)
+                Text("Customer Only")
+            } else {
+                Icon(Icons.Default.LockOpen, null)
+                Text("Public")
+            }
+        }
+
+        Row {
+            if (bathroom.wheelchair == true) {
+                Icon(Icons.AutoMirrored.Filled.Accessible, null)
+                Text("Accessible")
+            }
+            else {
+                Icon(Icons.Default.NotAccessible, null)
+                Text("Inaccessible")
+            }
+        }
+
+
+        Row() {
+            if (bathroom.paperTowels == true) AmenityChip("Paper Towels")
+            if (bathroom.airDryer == true) AmenityChip("Air Dryer")
+            if (bathroom.changingStation == true) AmenityChip("Baby Changing Station")
+            //TODO: sanitizer
+        }
+
+        HorizontalDivider()
+
+        //Create review button
+        //list of reviews
+
+        Row(
+            Modifier
+                .fillMaxWidth()
+                .padding(10.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Text(
+                "Reviews",
+                style = MaterialTheme.typography.titleLarge
+            )
+            Button(
+                onClick = onReview
+            ) {
+                Icon(Icons.Default.Add, null)
+                Text("Add Review")
+            }
+        }
+
+        LazyColumn(
             modifier = Modifier
-                .padding(4.dp)
-        )
+                .fillMaxWidth()
+                .fillMaxHeight(),
+            contentPadding = PaddingValues(4.dp, 4.dp),
+            verticalArrangement = Arrangement.spacedBy(20.dp)
+
+        ) {
+            item {
+                Review("Jimmy John", "THis bathroom was fire lowkey")
+            }
+            item {
+                Review("Stephen Hawking", "beep beep boop bop")
+            }
+            item {
+                Review("Klorb2", "I frowed up here")
+            }
+        }
     }
 }
 
@@ -395,75 +503,13 @@ fun SearchPage(state: SearchState, innerPadding: PaddingValues, authToken: Strin
             ModalBottomSheet(
                 onDismissRequest = {
                     clickedBathroom.value = null
-                },
-
-            ) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .clip(RoundedCornerShape(24.dp))
-                        .padding(12.dp)
-                        .background(MaterialTheme.colorScheme.background),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(10.dp),
-                ) {
-                    Text(text = "Bathroom at " + bathroom.name, color = MaterialTheme.colorScheme.onPrimary)
-                    if(bathroom.rating != null)
-                        Text(text = bathroom.rating.toString() + "/5.0", color = MaterialTheme.colorScheme.onPrimary)
-                    else
-                        Text(text = "unrated/5.0", color = MaterialTheme.colorScheme.onPrimary)
-
-                    HorizontalDivider()
-
-                    var access: String = "No Access"
-                    if(bathroom.bathroomId == 1) access = "Free"
-                    else if (bathroom.bathroomId == 2) access = "Customers"
-                    else if (bathroom.bathroomId == 1) access = "Door Code"
-                    Text(text = "Access: " + access, color = MaterialTheme.colorScheme.onPrimary)
-                    if(clickedBathroom.value!!.wheelchair == true) Text(text = "Is wheelchair accessible!", color = MaterialTheme.colorScheme.onPrimary)
-                    else Text(text = "Is NOT wheelchair accessible.", color = MaterialTheme.colorScheme.onPrimary)
-
-                    HorizontalDivider()
-
-                    Text(text = "Has:", color = MaterialTheme.colorScheme.onPrimary)
-                    Row() {
-                        if (bathroom.paperTowels == true) AmenityChip("Paper Towels")
-                        if (bathroom.airDryer == true) AmenityChip("Air Dryer")
-                        if (bathroom.changingStation == true) AmenityChip("Baby Changing Station")
-                    }
-
-                    HorizontalDivider()
-
-                    //Create review button
-                    //list of reviews
-
-                    Button(
-                        modifier = Modifier.fillMaxWidth(),
-                        onClick = {
-                            //open review activity
-                            state.reviewing.value = true
-                        }
-                    ) {
-                        Text("Review a Bathroom")
-                    }
-
-                    LazyColumn(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .fillMaxHeight()
-                            .background(color  = MaterialTheme.colorScheme.secondaryContainer)
-                            .height(65.dp),
-                        contentPadding = PaddingValues(4.dp, 4.dp)
-
-                    ) {
-                        item{
-                            Review("Jimmy John", "THis bathroom was fire lowkey")
-                            Review("Stephen Hawking", "beep beep boop bop")
-                            Review("Klorb2", "I frowed up here")
-                        }
-                    }
                 }
+            ) {
+                BathroomDetails(bathroom, {
+                    state.reviewing.value = true
+                })
             }
+
         }
 
         if(state.reviewing.value == true) {
@@ -481,12 +527,12 @@ fun SearchPage(state: SearchState, innerPadding: PaddingValues, authToken: Strin
                 .clip(RoundedCornerShape(24.dp))
                 .padding(12.dp)
                 .align(Alignment.TopCenter)
-                .rotate(360*flushAnimation.value)
-                .scale(1-flushAnimation.value)
+                .rotate(360 * flushAnimation.value)
+                .scale(1 - flushAnimation.value)
                 //.background(Color.Red.copy(alpha=flushAnimation.value))
                 .clip(flushShape)
                 .background(MaterialTheme.colorScheme.background)
-                .background(Color.Blue.copy(alpha=flushAnimation.value)),
+                .background(Color.Blue.copy(alpha = flushAnimation.value)),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
@@ -649,75 +695,7 @@ fun PreviewTray() {
         true,
     )
 
-    ModalBottomSheet(
-        onDismissRequest = {
-            //clickedBathroom.value = null
-        },
-
-        ) {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .clip(RoundedCornerShape(24.dp))
-                .padding(12.dp)
-                .background(MaterialTheme.colorScheme.background),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(10.dp),
-        ) {
-            Text(text = "Bathroom at " + bathroom.name, color = MaterialTheme.colorScheme.onPrimary)
-            if(bathroom.rating != null)
-                Text(text = bathroom.rating.toString() + "/5.0", color = MaterialTheme.colorScheme.onPrimary)
-            else
-                Text(text = "unrated/5.0", color = MaterialTheme.colorScheme.onPrimary)
-
-            HorizontalDivider()
-
-            var access: String = "No Access"
-            if(bathroom.bathroomId == 1) access = "Free"
-            else if (bathroom.bathroomId == 2) access = "Customers"
-            else if (bathroom.bathroomId == 1) access = "Door Code"
-            Text(text = "Access: " + access, color = MaterialTheme.colorScheme.onPrimary)
-            if(bathroom.wheelchair == true) Text(text = "Is wheelchair accessible!", color = MaterialTheme.colorScheme.onPrimary)
-            else Text(text = "Is NOT wheelchair accessible.", color = MaterialTheme.colorScheme.onPrimary)
-
-            HorizontalDivider()
-
-            Text(text = "Has:", color = MaterialTheme.colorScheme.onPrimary)
-            Row() {
-                if (bathroom.paperTowels == true) AmenityChip("Paper Towels")
-                if (bathroom.airDryer == true) AmenityChip("Air Dryer")
-                if (bathroom.changingStation == true) AmenityChip("Baby Changing Station")
-            }
-
-            HorizontalDivider()
-
-            //Create review button
-            //list of reviews
-
-            Button(
-                modifier = Modifier.fillMaxWidth(),
-                onClick = {
-                    //open review activity
-                }
-            ) {
-                Text("Review a Bathroom")
-            }
-
-            LazyColumn(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .fillMaxHeight()
-                    .background(color  = MaterialTheme.colorScheme.secondaryContainer)
-                    .height(65.dp),
-                contentPadding = PaddingValues(4.dp, 4.dp)
-
-            ) {
-                item{
-                    Review("Jimmy John", "THis bathroom was fire lowkey")
-                    Review("Stephen Hawking", "beep beep boop bop")
-                    Review("Klorb2", "I frowed up here")
-                }
-            }
-        }
+    FlushFinderTheme(true) {
+        BathroomDetails(bathroom, {})
     }
 }
