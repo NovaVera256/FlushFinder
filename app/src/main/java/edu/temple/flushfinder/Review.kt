@@ -81,7 +81,7 @@ fun StarRatingBar(
 
 
 @Composable
-fun Review(state: SearchState, bathroom: BathroomLocation?) {
+fun ReviewDialog(state: SearchState, bathroom: BathroomLocation?) {
 
 //    Box(
 //        modifier = Modifier
@@ -181,7 +181,7 @@ fun Review(state: SearchState, bathroom: BathroomLocation?) {
 @Composable
 fun previewReview() {
     FlushFinderTheme {
-        Review(
+        ReviewDialog(
             state = SearchState(),
             bathroom = BathroomLocation(
                 45678,

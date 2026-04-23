@@ -97,6 +97,7 @@ import com.google.maps.android.compose.Marker
 import com.google.maps.android.compose.MarkerState
 import com.google.maps.android.compose.rememberCameraPositionState
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.foundation.verticalScroll
@@ -108,9 +109,14 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.LockOpen
 import androidx.compose.material.icons.filled.NotAccessible
+import androidx.compose.material.icons.filled.StarRate
+import androidx.compose.material3.CardColors
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.FilterChip
+import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
@@ -195,13 +201,39 @@ fun AmenityChip(name: String) {
     FilterChip(
         onClick = {},
         selected = true,
-        label = {Text(name)}
+        label = {
+            Text(
+                name
+            )
+        },
+        colors = FilterChipDefaults.filterChipColors(selectedContainerColor = MaterialTheme.colorScheme.tertiary, selectedLabelColor = MaterialTheme.colorScheme.secondary)
     )
 }
 
+@Preview
 @Composable
-fun Review(user: String, text: String) {
-    Card {
+fun Rating(value: Int = 1) {
+    FlushFinderTheme(true) {
+        Row() {
+            for (i in 1..5) {
+                Icon(
+                    Icons.Default.StarRate,
+                    null,
+                    Modifier.size(15.dp),
+                    tint = if (i <= value) MaterialTheme.colorScheme.secondary else Color.Gray
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun Review(user: String, text: String, rating: Int) {
+    Card(
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.background
+        )
+    ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
@@ -217,10 +249,10 @@ fun Review(user: String, text: String) {
                 )
                 Spacer(Modifier.weight(1f))
                 //TODO: Star Rating composable
-                Text(
-                    text = "4/5",
-                )
+                Rating(rating)
             }
+
+            Spacer(Modifier.height(10.dp))
 
             Text(
                 text = text,
@@ -236,7 +268,6 @@ fun BathroomDetails(bathroom: BathroomLocation, onReview: () -> Unit) {
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background)
             .padding(12.dp),
         horizontalAlignment = Alignment.Start,
         verticalArrangement = Arrangement.spacedBy(10.dp)
@@ -250,38 +281,39 @@ fun BathroomDetails(bathroom: BathroomLocation, onReview: () -> Unit) {
                 style = MaterialTheme.typography.titleLarge
             )
             if (bathroom.rating != null)
-                Text(
-                    text = bathroom.rating.toString() + "/5.0",
-                )
+                Rating(bathroom.rating.roundToInt())
             else
                 Text(text = "unrated/5.0")
         }
 
 
+        val iconTint = MaterialTheme.colorScheme.secondary
         Row {
             //TODO: use customerOnly field
             if (bathroom.bathroomId == 1) {
-                Icon(Icons.Default.Lock, null)
+                Icon(Icons.Default.Lock, null, tint = iconTint)
                 Text("Customer Only")
             } else {
-                Icon(Icons.Default.LockOpen, null)
+                Icon(Icons.Default.LockOpen, null, tint = iconTint)
                 Text("Public")
             }
         }
 
         Row {
             if (bathroom.wheelchair == true) {
-                Icon(Icons.AutoMirrored.Filled.Accessible, null)
+                Icon(Icons.AutoMirrored.Filled.Accessible, null, tint = iconTint)
                 Text("Accessible")
             }
             else {
-                Icon(Icons.Default.NotAccessible, null)
+                Icon(Icons.Default.NotAccessible, null, tint = iconTint)
                 Text("Inaccessible")
             }
         }
 
 
-        Row() {
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
             if (bathroom.paperTowels == true) AmenityChip("Paper Towels")
             if (bathroom.airDryer == true) AmenityChip("Air Dryer")
             if (bathroom.changingStation == true) AmenityChip("Baby Changing Station")
@@ -315,19 +347,22 @@ fun BathroomDetails(bathroom: BathroomLocation, onReview: () -> Unit) {
         LazyColumn(
             modifier = Modifier
                 .fillMaxWidth()
-                .fillMaxHeight(),
+                .fillMaxHeight()
+                .clip(RoundedCornerShape(15.dp))
+                .background(MaterialTheme.colorScheme.surfaceContainerLow)
+                .padding(12.dp),
             contentPadding = PaddingValues(4.dp, 4.dp),
             verticalArrangement = Arrangement.spacedBy(20.dp)
 
         ) {
             item {
-                Review("Jimmy John", "THis bathroom was fire lowkey")
+                Review("Jimmy John", "THis bathroom was fire lowkey", 5)
             }
             item {
-                Review("Stephen Hawking", "beep beep boop bop")
+                Review("Stephen Hawking", "beep beep boop bop", 4)
             }
             item {
-                Review("Klorb2", "I frowed up here")
+                Review("Klorb2", "I frowed up here", 2)
             }
         }
     }
@@ -503,7 +538,8 @@ fun SearchPage(state: SearchState, innerPadding: PaddingValues, authToken: Strin
             ModalBottomSheet(
                 onDismissRequest = {
                     clickedBathroom.value = null
-                }
+                },
+                containerColor = MaterialTheme.colorScheme.background
             ) {
                 BathroomDetails(bathroom, {
                     state.reviewing.value = true
@@ -516,7 +552,7 @@ fun SearchPage(state: SearchState, innerPadding: PaddingValues, authToken: Strin
             Dialog(
                 onDismissRequest = { state.reviewing.value = false }
             ) {
-                Review(state, clickedBathroom.value)
+                ReviewDialog(state, clickedBathroom.value)
             }
         }
 
@@ -696,6 +732,11 @@ fun PreviewTray() {
     )
 
     FlushFinderTheme(true) {
-        BathroomDetails(bathroom, {})
+        Scaffold(
+
+        ) {
+            val a = it
+            BathroomDetails(bathroom, {})
+        }
     }
 }

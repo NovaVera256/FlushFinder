@@ -19,6 +19,7 @@ private val DarkColorScheme = darkColorScheme(
     secondary = Piss20,
     tertiary = Vomit60,
     background = Grimace500,
+    surfaceContainerLow = Grimace400,
     //onBackground = Piss20,
     surface = Vomit60,
     surfaceContainer = Vomit60,

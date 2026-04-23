@@ -16,4 +16,6 @@ val Vomit60 = Color(0xFF526939)
 
 val Grimace500 = Color(0xFF332636)
 
+val Grimace400 = Color(0xFF241B26)
+
 val Piss20 = Color(0xFFF0FF96)
