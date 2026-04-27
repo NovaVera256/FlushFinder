@@ -93,6 +93,11 @@ data class SearchState (
     val accessSelection: MutableState<List<Boolean>> = mutableStateOf(listOf(false, false, false)),
 
     val amenities: Amenities = Amenities(),
+    
+    val reviewing: MutableState<Boolean> = mutableStateOf(false),
+    val reviewTextState: MutableState<String> = mutableStateOf(""),
+    val reviewRatingState: MutableFloatState = mutableFloatStateOf(0f),
+    val reviewError: MutableState<String?> = mutableStateOf(null),
 
     val searchVisible: MutableState<Boolean> = mutableStateOf(true),
     val showMap: MutableState<Boolean> = mutableStateOf(false),
@@ -119,6 +124,7 @@ data class ReviewState (
 
 data class BathroomLocation(
     val bathroomId: Int,
+    val name: String,
     val latitude: Double,
     val longitude: Double,
     val rating: Double?,
@@ -158,7 +164,7 @@ class MainActivity : ComponentActivity() {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun Root(state: MainViewModel) {
-    FlushFinderTheme {
+    FlushFinderTheme(true) {
         Scaffold(
             topBar = {
                 TopAppBar({

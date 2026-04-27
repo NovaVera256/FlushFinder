@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -55,7 +56,8 @@ fun Login(state: AccountState, innerPadding: PaddingValues) {
                                 },
                 label = { Text("Username") },
                 singleLine = true,
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier.fillMaxWidth(),
+                colors = OutlinedTextFieldDefaults.colors(MaterialTheme.colorScheme.onPrimary)
             )
 
             OutlinedTextField(
@@ -67,7 +69,8 @@ fun Login(state: AccountState, innerPadding: PaddingValues) {
                 label = { Text("Password") },
                 singleLine = true,
                 visualTransformation = PasswordVisualTransformation(),
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier.fillMaxWidth(),
+                colors = OutlinedTextFieldDefaults.colors(MaterialTheme.colorScheme.onPrimary)
             )
 
             if (state.errorMessage.value != null) {

@@ -91,11 +91,12 @@ object SearchApi {
                             bathroomId = item.optInt("bathroom_id", -1),
                             latitude = item.getDouble("latitude"),
                             longitude = item.getDouble("longitude"),
+                            name = item.getString("name"),
                             rating = if (item.has("rating")) item.optDouble("rating") else null,
                             changingStation = if (item.has("changing_station")) item.optBoolean("changing_station") else null,
                             airDryer = if (item.has("air_dryer")) item.optBoolean("air_dryer") else null,
                             paperTowels = if (item.has("paper_towels")) item.optBoolean("paper_towels") else null,
-                            wheelchair = if (item.has("wheelchair")) item.optBoolean("wheelchair") else null
+                            wheelchair = if (item.has("wheelchair")) item.optBoolean("wheelchair") else null,
                         )
                     )
                 }
