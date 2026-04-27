@@ -42,7 +42,8 @@ object LocationsApi {
 
         sendJsonRequest(
             endpoint = "$BASE_URL/new",
-            method = "POST",body = body,
+            method = "POST",
+            body = body,
             token = token,
             callback = callback
         )
@@ -70,7 +71,8 @@ object LocationsApi {
 
         sendJsonRequest(
             endpoint = "$BASE_URL/$bathroomId",
-            method = "PUT",body = body,
+            method = "PUT",
+            body = body,
             token = token,
             callback = callback
         )
