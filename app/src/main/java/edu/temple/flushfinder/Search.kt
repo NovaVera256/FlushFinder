@@ -264,7 +264,7 @@ fun Review(user: String, text: String, rating: Int) {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun BathroomDetails(bathroom: BathroomLocation, onReview: () -> Unit) {
+fun BathroomDetails(bathroom: BathroomLocation, reviewList: List<BathroomReview>, onReview: () -> Unit) {
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -355,14 +355,10 @@ fun BathroomDetails(bathroom: BathroomLocation, onReview: () -> Unit) {
             verticalArrangement = Arrangement.spacedBy(20.dp)
 
         ) {
-            item {
-                Review("Jimmy John", "THis bathroom was fire lowkey", 5)
-            }
-            item {
-                Review("Stephen Hawking", "beep beep boop bop", 4)
-            }
-            item {
-                Review("Klorb2", "I frowed up here", 2)
+            for( i in 0 until reviewList.size) {
+                item {
+                    Review( reviewList[i].username!!, reviewList[i].text!!, reviewList[i].rating.toInt()   )
+                }
             }
         }
     }
@@ -535,13 +531,18 @@ fun SearchPage(state: SearchState, innerPadding: PaddingValues, authToken: Strin
         }
 
         clickedBathroom.value?.let { bathroom ->
+            var reviewList: List<BathroomReview> = emptyList()
+
+            ReviewApi.getReviews(clickedBathroom.value!!.bathroomId) { response ->
+                reviewList = response.reviews
+            }
             ModalBottomSheet(
                 onDismissRequest = {
                     clickedBathroom.value = null
                 },
                 containerColor = MaterialTheme.colorScheme.background
             ) {
-                BathroomDetails(bathroom, {
+                BathroomDetails(bathroom, reviewList, {
                     state.reviewing.value = true
                 })
             }
@@ -553,6 +554,16 @@ fun SearchPage(state: SearchState, innerPadding: PaddingValues, authToken: Strin
                 onDismissRequest = { state.reviewing.value = false }
             ) {
                 ReviewDialog(state, clickedBathroom.value)
+            }
+        }
+
+        state.nfcFound.value?.let {
+            Dialog(
+                onDismissRequest = {
+                    state.nfcFound.value = null
+                }
+            ) {
+                NfcDialog(state.nfcFound.value!!)
             }
         }
 
@@ -736,7 +747,13 @@ fun PreviewTray() {
 
         ) {
             val a = it
-            BathroomDetails(bathroom, {})
+            BathroomDetails(bathroom, emptyList(), {})
         }
     }
+}
+
+@Preview
+@Composable
+fun thingy() {
+    NfcDialog("this is a test")
 }

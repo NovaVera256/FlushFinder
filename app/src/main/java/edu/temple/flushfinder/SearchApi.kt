@@ -20,7 +20,7 @@ data class SearchResponse(
 
 object SearchApi {
     private const val SEARCH_URL = "https://flushfinder-5eq8.onrender.com/api/locations/search"
-    private val mainHandler = Handler(Looper.getMainLooper())
+    val mainHandler = Handler(Looper.getMainLooper())
 
     fun searchLocations(
         number: Int,

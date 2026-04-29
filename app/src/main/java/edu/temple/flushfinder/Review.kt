@@ -83,98 +83,69 @@ fun StarRatingBar(
 @Composable
 fun ReviewDialog(state: SearchState, bathroom: BathroomLocation?) {
 
-//    Box(
-//        modifier = Modifier
-//            .fillMaxSize()
-//            .background(Color(0x45000000))
-//            .clickable{
-//
-//            },
-//
-//    ) {
-//        Column(
-//            modifier = Modifier
-//                .fillMaxSize(),
-//            horizontalAlignment = Alignment.CenterHorizontally,
-//            verticalArrangement =  Arrangement.Center,
-//
-//
-//        ) {
-            Column(
-                modifier = Modifier
-                    .width(300.dp)
-                    .background(MaterialTheme.colorScheme.background),
-                horizontalAlignment = Alignment.CenterHorizontally,
-            ) {
-                Text(
-                    text = "How was the bathroom at " + bathroom?.name + "?",
-                    modifier = Modifier
-                        .padding(8.dp)
-                )
+    Column(
+        modifier = Modifier
+            .width(300.dp)
+            .background(MaterialTheme.colorScheme.background),
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        Text(
+            text = "How was the bathroom at " + bathroom?.name + "?",
+            modifier = Modifier
+                .padding(8.dp)
+        )
 
-                HorizontalDivider()
+        HorizontalDivider()
 
-                Text(
-                    text = "Rating out of 5:",
-                    modifier = Modifier
-                        .padding(8.dp)
-                )
-                StarRatingBar(
-                    maxStars = 5,
-                    rating = state.reviewRatingState.floatValue ?: 0f,
-                    onRatingChanged = {
-                        state.reviewRatingState.floatValue = it
-                    }
-                )
-
-//            OutlinedTextField(
-//                value = state.reviewTextState.value,
-//                onValueChange = {
-//                    state.reviewTextState.value = it
-//
-//                },
-//                modifier = Modifier
-//                    .fillMaxWidth(),
-//                label = Text("Type your review..."),
-//                )
-                OutlinedTextField(
-                    value = state.reviewTextState.value,
-                    onValueChange = {
-                        state.reviewTextState.value = it
-                    },
-                    label = { Text("Write your review...") },
-                    singleLine = false,
-                    modifier = Modifier.fillMaxWidth().height(200.dp).padding(8.dp),
-                    enabled = true,
-                    colors = OutlinedTextFieldDefaults.colors(MaterialTheme.colorScheme.onPrimary)
-                )
-
-                Button(
-                    onClick = {
-                        if(state.reviewTextState.value == "")
-                            state.reviewError.value = "Please type a review"
-                        else if(state.reviewRatingState.floatValue == 0f)
-                            state.reviewError.value = "Please provide a rating"
-                        else
-                            state.reviewError.value = null
-                            state.reviewing.value = false
-                    },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(8.dp)
-                ) {
-                    Text("Submit Review")
-                }
-
-                state.reviewError.value?.let{
-                    Text(
-                        text = it,
-                        color = MaterialTheme.colorScheme.error
-                    )
-                }
+        Text(
+            text = "Rating out of 5:",
+            modifier = Modifier
+                .padding(8.dp)
+        )
+        StarRatingBar(
+            maxStars = 5,
+            rating = state.reviewRatingState.floatValue ?: 0f,
+            onRatingChanged = {
+                state.reviewRatingState.floatValue = it
             }
-       // }
-    //}
+        )
+
+        OutlinedTextField(
+            value = state.reviewTextState.value,
+            onValueChange = {
+                state.reviewTextState.value = it
+            },
+            label = { Text("Write your review...") },
+            singleLine = false,
+            modifier = Modifier.fillMaxWidth().height(200.dp).padding(8.dp),
+            enabled = true,
+            colors = OutlinedTextFieldDefaults.colors(MaterialTheme.colorScheme.onPrimary)
+        )
+
+        Button(
+            onClick = {
+                if(state.reviewTextState.value == "")
+                    state.reviewError.value = "Please type a review"
+                else if(state.reviewRatingState.floatValue == 0f)
+                    state.reviewError.value = "Please provide a rating"
+                else
+                    state.reviewError.value = null
+                    state.reviewing.value = false
+            },
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(8.dp)
+        ) {
+            Text("Submit Review")
+        }
+
+        state.reviewError.value?.let{
+            Text(
+                text = it,
+                color = MaterialTheme.colorScheme.error
+            )
+        }
+    }
 }
 
 @Preview

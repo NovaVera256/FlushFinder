@@ -1,78 +1,53 @@
 package edu.temple.flushfinder
 
+import android.app.PendingIntent
+import android.content.Intent
+import android.content.IntentFilter
+import android.nfc.NdefMessage
+import android.nfc.NdefRecord
+import android.nfc.NfcAdapter
+import android.nfc.tech.NfcF
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
-import androidx.compose.foundation.horizontalScroll
-import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.offset
-import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.StarRate
-import androidx.compose.material3.Button
-import androidx.compose.material3.Checkbox
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilterChip
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.MultiChoiceSegmentedButtonRow
 import androidx.compose.material3.NavigationBar
-import androidx.compose.material3.NavigationBarDefaults
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.NavigationBarItemColors
-import androidx.compose.material3.RangeSlider
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SegmentedButton
-import androidx.compose.material3.SegmentedButtonDefaults
-import androidx.compose.material3.SingleChoiceSegmentedButtonRow
-import androidx.compose.material3.Slider
-import androidx.compose.material3.SliderColors
-import androidx.compose.material3.SliderDefaults
-import androidx.compose.material3.SliderState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.VerticalDivider
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.MutableFloatState
-import androidx.compose.runtime.MutableIntState
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.mutableFloatStateOf
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.drawWithCache
-import androidx.compose.ui.graphics.RenderEffect
-import androidx.compose.ui.graphics.Shader
-import androidx.compose.ui.graphics.ShaderBrush
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.tooling.preview.Preview
-import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
 import androidx.lifecycle.ViewModel
 import edu.temple.flushfinder.ui.theme.FlushFinderTheme
-import java.util.EnumSet
+import java.io.UnsupportedEncodingException
+
 
 enum class Page {
-    Review,
+    NewBathroom,
     Search,
     Account
 }
@@ -99,6 +74,8 @@ data class SearchState (
     val reviewRatingState: MutableFloatState = mutableFloatStateOf(0f),
     val reviewError: MutableState<String?> = mutableStateOf(null),
 
+    val nfcFound: MutableState<String?> = mutableStateOf(null),
+
     val searchVisible: MutableState<Boolean> = mutableStateOf(true),
     val showMap: MutableState<Boolean> = mutableStateOf(false),
     val isSearching: MutableState<Boolean> = mutableStateOf(false),
@@ -118,7 +95,7 @@ data class AccountState (
     val errorMessage: MutableState<String?> = mutableStateOf(null)
 )
 
-data class ReviewState (
+data class NewState (
     val dummy: Boolean = true
 )
 
@@ -140,13 +117,20 @@ data class BathroomLocation(
  */
 class MainViewModel (
     val page: MutableState<Page> = mutableStateOf(Page.Search),
-    val review: ReviewState = ReviewState(),
+    val addNew: NewState = NewState(),
     val search: SearchState = SearchState(),
     val account: AccountState = AccountState()
 ): ViewModel()
 
 class MainActivity : ComponentActivity() {
     val viewmodel: MainViewModel by viewModels()
+
+    var nfcAdapter: NfcAdapter? = null
+
+    var intentFilters: Array<IntentFilter> = emptyArray()
+    lateinit var techList: Array<Array<String?>>
+
+    lateinit var pendingIntent: PendingIntent
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -158,6 +142,87 @@ class MainActivity : ComponentActivity() {
         setContent {
             Root(viewmodel)
         }
+
+        nfcAdapter = NfcAdapter.getDefaultAdapter(this)
+
+        val intent = Intent(this, javaClass).apply {
+            addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP)
+        }
+
+        if (nfcAdapter != null) {
+            pendingIntent = PendingIntent.getActivity(
+                this,
+                0,
+                intent,
+                PendingIntent.FLAG_MUTABLE
+            )
+
+            val ndef = IntentFilter(NfcAdapter.ACTION_NDEF_DISCOVERED).apply {
+                try {
+                    addDataType("application/vnd.flushfinder")
+                } catch (e: IntentFilter.MalformedMimeTypeException) {
+                    throw RuntimeException("nfc tag failed to scan correctly", e)
+                }
+            }
+
+            techList = arrayOf(arrayOf(NfcF::class.java.name))
+
+            intentFilters = arrayOf(ndef)
+        }
+
+
+
+
+        
+    }
+
+    public override fun onPause() {
+        super.onPause()
+        if (nfcAdapter != null) {
+            nfcAdapter!!.disableForegroundDispatch(this)
+        }
+    }
+
+    public override fun onResume() {
+        super.onResume()
+        if (nfcAdapter != null) {
+            nfcAdapter!!.enableForegroundDispatch(this, pendingIntent, intentFilters, techList)
+        }
+    }
+
+    override fun onNewIntent(intent: Intent) {
+
+        if(nfcAdapter != null) {
+            if (NfcAdapter.ACTION_NDEF_DISCOVERED == intent.action) {
+                intent.getParcelableArrayExtra(NfcAdapter.EXTRA_NDEF_MESSAGES)
+                    ?.also { rawMessages ->
+                        val messages: List<NdefMessage> = rawMessages.map { it as NdefMessage }
+
+                        if (messages[0].records[0].toMimeType() == "application/vnd.flushfinder")
+                            viewmodel.search.nfcFound.value =
+                                parseTextRecord(messages[0].records[0])
+
+                    }
+            }
+        }
+
+        super.onNewIntent(intent)
+    }
+}
+
+private fun parseTextRecord(record: NdefRecord): String {
+    val payload = record.getPayload()
+    val textEncoding = if ((payload[0].toInt() and 128) == 0) "UTF-8" else "UTF-16"
+    val languageCodeLength = payload[0].toInt() and 63
+    try {
+        return String(
+            payload,
+            languageCodeLength + 1,
+            payload.size - languageCodeLength - 1,
+            charset(textEncoding)
+        )
+    } catch (e: UnsupportedEncodingException) {
+        return ""
     }
 }
 
@@ -183,9 +248,9 @@ fun Root(state: MainViewModel) {
                         disabledTextColor = MaterialTheme.colorScheme.surface
                     );
                     NavigationBarItem(
-                        state.page.value == Page.Review,
+                        state.page.value == Page.NewBathroom,
                         {
-                            state.page.value = Page.Review
+                            state.page.value = Page.NewBathroom
                         },
                         {
                             Icon(Icons.Default.StarRate, null)
@@ -225,7 +290,7 @@ fun Root(state: MainViewModel) {
             }
         ) { innerPadding ->
             when (state.page.value) {
-                Page.Review -> ReviewPage(state.review, innerPadding)
+                Page.NewBathroom -> NewPage(state.addNew, innerPadding)
                 Page.Search -> SearchPage(
                     state = state.search,
                     innerPadding = innerPadding,
@@ -233,14 +298,28 @@ fun Root(state: MainViewModel) {
                 )
                 Page.Account -> AccountPage(state.account, innerPadding)
             }
+
+
         }
     }
 }
 
 
 @Composable
-fun ReviewPage(state: ReviewState, innerPadding: PaddingValues) {
-    Text("Review stuff")
+fun NewPage(state: NewState, innerPadding: PaddingValues) {
+    Text("Add New Bathroom Page")
+}
+
+@Composable
+fun NfcDialog(info: String) {
+    Column(
+        modifier = Modifier
+            .width(300.dp)
+            .background(MaterialTheme.colorScheme.background),
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        Text("NFC Detected: $info")
+    }
 }
 
 
