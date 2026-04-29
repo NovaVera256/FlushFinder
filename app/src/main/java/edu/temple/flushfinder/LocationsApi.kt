@@ -23,10 +23,14 @@ object LocationsApi {
     fun createLocation(
         latitude: Double,
         longitude: Double,
+        name: String,
         changingStation: Boolean,
         airDryer: Boolean,
         paperTowels: Boolean,
+        handSanitizer: Boolean,
+        singleOccupancy: Boolean,
         wheelchair: Boolean,
+        customerOnly: Boolean,
         token: String? = null,
         callback: (LocationWriteResponse) -> Unit
     ) {
@@ -34,10 +38,14 @@ object LocationsApi {
         val body = JSONObject().apply {
             put("latitude", latitude)
             put("longitude", longitude)
+            put("name", name)
             put("changing_station", changingStation)
             put("air_dryer", airDryer)
             put("paper_towels", paperTowels)
             put("wheelchair", wheelchair)
+            put("hand_sanitizer", handSanitizer)
+            put("single_occupancy", singleOccupancy)
+            put("customer_only", customerOnly)
         }
 
         sendJsonRequest(
@@ -51,27 +59,29 @@ object LocationsApi {
 
     fun updateLocation(
         bathroomId: Int,
-        latitude: Double? = null,
-        longitude: Double? = null,
         changingStation: Boolean? = null,
         airDryer: Boolean? = null,
         paperTowels: Boolean? = null,
         wheelchair: Boolean? = null,
         token: String? = null,
+        handSanitizer: Boolean? = null,
+        singleOccupancy: Boolean? = null,
+        customerOnly: Boolean? = null,
         callback: (LocationWriteResponse) -> Unit
     ) {
         val body = JSONObject().apply {
-            latitude?.let { put("latitude", it) }
-            longitude?.let { put("longitude", it) }
             changingStation?.let { put("changing_station", it) }
             airDryer?.let { put("air_dryer", it) }
             paperTowels?.let { put("paper_towels", it) }
             wheelchair?.let { put("wheelchair", it) }
+            handSanitizer?.let { put("hand_sanitizer", it) }
+            singleOccupancy?.let { put("single_occupancy", it) }
+            customerOnly?.let { put("customer_only", it) }
         }
 
         sendJsonRequest(
             endpoint = "$BASE_URL/$bathroomId",
-            method = "PUT",
+            method = "PATCH",
             body = body,
             token = token,
             callback = callback
@@ -80,7 +90,8 @@ object LocationsApi {
 
     private fun sendJsonRequest(
         endpoint: String,
-        method: String,body: JSONObject,
+        method: String,
+        body: JSONObject,
         token: String?,
         callback: (LocationWriteResponse) -> Unit
     ) {
