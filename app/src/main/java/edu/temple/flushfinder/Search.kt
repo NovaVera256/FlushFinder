@@ -264,7 +264,7 @@ fun Review(user: String, text: String, rating: Int) {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun BathroomDetails(bathroom: BathroomLocation, reviewList: List<BathroomReview>, onReview: () -> Unit) {
+fun BathroomDetails(bathroom: BathroomLocation, reviews: List<BathroomReview>?, onReview: () -> Unit) {
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -355,9 +355,24 @@ fun BathroomDetails(bathroom: BathroomLocation, reviewList: List<BathroomReview>
             verticalArrangement = Arrangement.spacedBy(20.dp)
 
         ) {
-            for( i in 0 until reviewList.size) {
+            if (reviews != null) {
+                for (review in reviews)
+                    item {
+                        Review(review.username, review.text, review.rating)
+                    }
+                if(reviews.isEmpty()) {
+                    item {
+                        Text("No Reviews Yet!")
+                    }
+                }
+            } else {
                 item {
-                    Review( reviewList[i].username!!, reviewList[i].text!!, reviewList[i].rating.toInt()   )
+                    Row (
+                        Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.Center
+                    ) {
+                        CircularProgressIndicator()
+                    }
                 }
             }
         }
@@ -368,7 +383,7 @@ private fun sliderToBathroomCount(value: Float): Int {
     return (1 + (value * 9f).roundToInt()).coerceIn(1, 10)
 }
 
-private fun hasLocationPermission(context: Context): Boolean {
+fun hasLocationPermission(context: Context): Boolean {
     val fine = ContextCompat.checkSelfPermission(
         context,
         Manifest.permission.ACCESS_FINE_LOCATION
@@ -381,7 +396,7 @@ private fun hasLocationPermission(context: Context): Boolean {
     return fine || coarse
 }
 
-private fun getBestLastKnownLocation(context: Context): Location? {
+fun getBestLastKnownLocation(context: Context): Location? {
 
     val locationManager = context.getSystemService(Context.LOCATION_SERVICE) as LocationManager
     val providers = listOf(
@@ -419,6 +434,8 @@ fun SearchPage(state: SearchState, innerPadding: PaddingValues, authToken: Strin
 
     val clickedBathroom: MutableState<BathroomLocation?> = remember { mutableStateOf(null)
     }
+
+    val reviews: MutableState<List<BathroomReview>?> = remember { mutableStateOf(null) }
 
     val permissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions()
@@ -523,6 +540,9 @@ fun SearchPage(state: SearchState, innerPadding: PaddingValues, authToken: Strin
                         snippet = bathroom.rating?.let { rating -> "Rating: $rating" } ?: "No rating",
                         onClick = { marker ->
                             clickedBathroom.value = bathroom
+                            if(authToken != null) ReviewApi.getReviews(bathroom.bathroomId, authToken) {
+                                if(it.success) reviews.value = it.reviews
+                            }
                             true
                         }
                     )
@@ -531,29 +551,31 @@ fun SearchPage(state: SearchState, innerPadding: PaddingValues, authToken: Strin
         }
 
         clickedBathroom.value?.let { bathroom ->
-            var reviewList: List<BathroomReview> = emptyList()
-
-            ReviewApi.getReviews(clickedBathroom.value!!.bathroomId) { response ->
-                reviewList = response.reviews
-            }
             ModalBottomSheet(
                 onDismissRequest = {
                     clickedBathroom.value = null
+                    reviews.value = null
                 },
                 containerColor = MaterialTheme.colorScheme.background
             ) {
-                BathroomDetails(bathroom, reviewList, {
+                BathroomDetails(bathroom, reviews.value, {
                     state.reviewing.value = true
                 })
             }
 
         }
 
-        if(state.reviewing.value == true) {
+        if(state.reviewing.value) {
             Dialog(
                 onDismissRequest = { state.reviewing.value = false }
             ) {
-                ReviewDialog(state, clickedBathroom.value)
+                ReviewDialog(state, clickedBathroom.value) { rating, text ->
+                    if(authToken != null) ReviewApi.createReview(clickedBathroom.value!!.bathroomId, rating, text, authToken) { createResponse ->
+                        if(createResponse.success) ReviewApi.getReviews(clickedBathroom.value!!.bathroomId, authToken) {
+                            if(it.success) reviews.value = it.reviews
+                        }
+                    }
+                }
             }
         }
 
@@ -747,7 +769,7 @@ fun PreviewTray() {
 
         ) {
             val a = it
-            BathroomDetails(bathroom, emptyList(), {})
+            BathroomDetails(bathroom, null, {})
         }
     }
 }

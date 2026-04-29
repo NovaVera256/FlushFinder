@@ -43,8 +43,8 @@ import org.intellij.lang.annotations.JdkConstants
 @Composable
 fun StarRatingBar(
     maxStars: Int = 5,
-    rating: Float,
-    onRatingChanged: (Float) -> Unit
+    rating: Int,
+    onRatingChanged: (Int) -> Unit
 ) {
     val density = LocalDensity.current.density
     val starSize = (12f * density).dp
@@ -66,7 +66,7 @@ fun StarRatingBar(
                     .selectable(
                         selected = isSelected,
                         onClick = {
-                            onRatingChanged(i.toFloat())
+                            onRatingChanged(i)
                         }
                     )
                     .width(starSize).height(starSize)
@@ -81,7 +81,7 @@ fun StarRatingBar(
 
 
 @Composable
-fun ReviewDialog(state: SearchState, bathroom: BathroomLocation?) {
+fun ReviewDialog(state: SearchState, bathroom: BathroomLocation?, onSubmit: (Int, String?) -> Unit) {
 
     Column(
         modifier = Modifier
@@ -97,18 +97,18 @@ fun ReviewDialog(state: SearchState, bathroom: BathroomLocation?) {
 
         HorizontalDivider()
 
-        Text(
-            text = "Rating out of 5:",
-            modifier = Modifier
-                .padding(8.dp)
-        )
-        StarRatingBar(
-            maxStars = 5,
-            rating = state.reviewRatingState.floatValue ?: 0f,
-            onRatingChanged = {
-                state.reviewRatingState.floatValue = it
-            }
-        )
+                Text(
+                    text = "Rating out of 5:",
+                    modifier = Modifier
+                        .padding(8.dp)
+                )
+                StarRatingBar(
+                    maxStars = 5,
+                    rating = state.reviewRatingState.intValue ?: 0,
+                    onRatingChanged = {
+                        state.reviewRatingState.intValue = it
+                    }
+                )
 
         OutlinedTextField(
             value = state.reviewTextState.value,
@@ -122,22 +122,27 @@ fun ReviewDialog(state: SearchState, bathroom: BathroomLocation?) {
             colors = OutlinedTextFieldDefaults.colors(MaterialTheme.colorScheme.onPrimary)
         )
 
-        Button(
-            onClick = {
-                if(state.reviewTextState.value == "")
-                    state.reviewError.value = "Please type a review"
-                else if(state.reviewRatingState.floatValue == 0f)
-                    state.reviewError.value = "Please provide a rating"
-                else
-                    state.reviewError.value = null
-                    state.reviewing.value = false
-            },
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(8.dp)
-        ) {
-            Text("Submit Review")
-        }
+                Button(
+                    onClick = {
+                        if(state.reviewTextState.value == "")
+                            state.reviewError.value = "Please type a review"
+                        else if(state.reviewRatingState.intValue == 0)
+                            state.reviewError.value = "Please provide a rating"
+                        else
+                            state.reviewError.value = null
+                            state.reviewing.value = false
+
+                        onSubmit(
+                            state.reviewRatingState.intValue,
+                            state.reviewTextState.value.ifBlank { null }
+                        )
+                    },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(8.dp)
+                ) {
+                    Text("Submit Review")
+                }
 
         state.reviewError.value?.let{
             Text(
@@ -165,6 +170,6 @@ fun previewReview() {
                 true,
                 false
             )
-        )
+        ) {p1, p2 -> }
     }
 }

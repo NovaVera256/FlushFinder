@@ -13,9 +13,9 @@ import kotlin.concurrent.thread
 
 data class BathroomReview(
     val rating: Int,
-    val text: String?,
+    val text: String,
     val createdAt: String?,
-    val username: String?
+    val username: String
 )
 
 data class ReviewsResponse(
@@ -67,20 +67,20 @@ object ReviewApi {
                 for (i in 0 until resultsArray.length()) {
                     val item = resultsArray.getJSONObject(i)
 
-                    reviews.add(BathroomReview(rating = item.optInt(
-                        "rating", 0),
-                        text = if (item.isNull("text")) null else item.optString("text"),
-                        createdAt = if (item.isNull("created_at")) null else item.optString("created_at"),
-                        username = if (item.isNull("username")) null else item.optString("username")
-                    )
-                    )
+                    reviews.add(BathroomReview(
+                        rating = item.optInt("rating", 0),
+                        text = item.optString("text"),
+                        createdAt = item.optString("created_at"),
+                        username = item.optString("username")
+                    ))
                 }
 
                 mainHandler.post {
                     callback(
                         ReviewsResponse(
                             reviews = reviews,
-                            success = true)
+                            success = true
+                        )
                     )
                 }
             } catch (e: Exception) {

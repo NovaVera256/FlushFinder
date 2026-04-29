@@ -1,5 +1,7 @@
 package edu.temple.flushfinder
 
+import android.content.Context
+import android.content.SharedPreferences
 import android.app.PendingIntent
 import android.content.Intent
 import android.content.IntentFilter
@@ -8,46 +10,75 @@ import android.nfc.NdefRecord
 import android.nfc.NfcAdapter
 import android.nfc.tech.NfcF
 import android.os.Bundle
+import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountCircle
+import androidx.compose.material.icons.filled.AddLocationAlt
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.StarRate
+import androidx.compose.material3.Button
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilterChip
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.MultiChoiceSegmentedButtonRow
 import androidx.compose.material3.NavigationBar
+import androidx.compose.material3.NavigationBarDefaults
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.NavigationBarItemColors
+import androidx.compose.material3.RangeSlider
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SegmentedButton
+import androidx.compose.material3.SegmentedButtonDefaults
+import androidx.compose.material3.SingleChoiceSegmentedButtonRow
+import androidx.compose.material3.Slider
+import androidx.compose.material3.SliderColors
+import androidx.compose.material3.SliderDefaults
+import androidx.compose.material3.SliderState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.VerticalDivider
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.MutableFloatState
+import androidx.compose.runtime.MutableIntState
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.drawWithCache
+import androidx.compose.ui.graphics.RenderEffect
+import androidx.compose.ui.graphics.Shader
+import androidx.compose.ui.graphics.ShaderBrush
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
+import androidx.core.content.edit
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.ViewModelProvider
 import edu.temple.flushfinder.ui.theme.FlushFinderTheme
 import java.io.UnsupportedEncodingException
 
 
 enum class Page {
-    NewBathroom,
+    NewLocation,
     Search,
     Account
 }
@@ -71,7 +102,7 @@ data class SearchState (
     
     val reviewing: MutableState<Boolean> = mutableStateOf(false),
     val reviewTextState: MutableState<String> = mutableStateOf(""),
-    val reviewRatingState: MutableFloatState = mutableFloatStateOf(0f),
+    val reviewRatingState: MutableIntState = mutableIntStateOf(0),
     val reviewError: MutableState<String?> = mutableStateOf(null),
 
     val nfcFound: MutableState<String?> = mutableStateOf(null),
@@ -95,7 +126,7 @@ data class AccountState (
     val errorMessage: MutableState<String?> = mutableStateOf(null)
 )
 
-data class NewState (
+data class NewLocationState (
     val dummy: Boolean = true
 )
 
@@ -117,10 +148,14 @@ data class BathroomLocation(
  */
 class MainViewModel (
     val page: MutableState<Page> = mutableStateOf(Page.Search),
-    val addNew: NewState = NewState(),
+    val newLocation: NewLocationState = NewLocationState(),
     val search: SearchState = SearchState(),
-    val account: AccountState = AccountState()
+    val account: AccountState = AccountState(),
+    var onTokenChanged: (String?) -> Unit = { }
 ): ViewModel()
+
+const val WEB_TOKEN_STORAGE_KEY = "FLUSHFINDER_WEB_TOKEN"
+const val USERNAME_STORAGE_KEY = "FLUSHFINDER_USERNAME"
 
 class MainActivity : ComponentActivity() {
     val viewmodel: MainViewModel by viewModels()
@@ -139,6 +174,33 @@ class MainActivity : ComponentActivity() {
             hide(WindowInsetsCompat.Type.navigationBars())
             systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
         }
+
+        var token: String?
+        var username: String?
+
+        getPreferences(MODE_PRIVATE).run {
+            token = getString(WEB_TOKEN_STORAGE_KEY, null)
+            username = getString(USERNAME_STORAGE_KEY, null)
+        }
+
+        viewmodel.account.token.value = token
+        viewmodel.account.username.value = username.orEmpty()
+
+        if(token != null) viewmodel.account.isLoggedIn.value = true
+
+        viewmodel.onTokenChanged = {it ->
+            getPreferences(MODE_PRIVATE).edit {
+                if(it != null) {
+                    putString(WEB_TOKEN_STORAGE_KEY, it)
+                    putString(USERNAME_STORAGE_KEY, viewmodel.account.username.value)
+                }
+                else {
+                    remove(WEB_TOKEN_STORAGE_KEY)
+                    remove(USERNAME_STORAGE_KEY)
+                }
+            }
+        }
+
         setContent {
             Root(viewmodel)
         }
@@ -173,7 +235,7 @@ class MainActivity : ComponentActivity() {
 
 
 
-        
+
     }
 
     public override fun onPause() {
@@ -248,15 +310,15 @@ fun Root(state: MainViewModel) {
                         disabledTextColor = MaterialTheme.colorScheme.surface
                     );
                     NavigationBarItem(
-                        state.page.value == Page.NewBathroom,
+                        state.page.value == Page.NewLocation,
                         {
-                            state.page.value = Page.NewBathroom
+                            state.page.value = Page.NewLocation
                         },
                         {
-                            Icon(Icons.Default.StarRate, null)
+                            Icon(Icons.Default.AddLocationAlt, null)
                         },
                         label = {
-                            Text("Review")
+                            Text("Upload")
                         },
                         colors = colors
                     )
@@ -290,13 +352,15 @@ fun Root(state: MainViewModel) {
             }
         ) { innerPadding ->
             when (state.page.value) {
-                Page.NewBathroom -> NewPage(state.addNew, innerPadding)
+                Page.NewLocation -> NewLocationPage(state.newLocation, innerPadding) {
+                    Log.d("NewLocation", "Submitting new location $it")
+                }
                 Page.Search -> SearchPage(
                     state = state.search,
                     innerPadding = innerPadding,
                     authToken = state.account.token.value
                 )
-                Page.Account -> AccountPage(state.account, innerPadding)
+                Page.Account -> AccountPage(state.account, innerPadding, onTokenChanged = state.onTokenChanged)
             }
 
 
@@ -304,11 +368,6 @@ fun Root(state: MainViewModel) {
     }
 }
 
-
-@Composable
-fun NewPage(state: NewState, innerPadding: PaddingValues) {
-    Text("Add New Bathroom Page")
-}
 
 @Composable
 fun NfcDialog(info: String) {
@@ -323,14 +382,10 @@ fun NfcDialog(info: String) {
 }
 
 
-@Composable
-fun AccountPage(state: AccountState, innerPadding: PaddingValues) {
-    LoginPage(state = state, innerPadding = innerPadding)
-}
 
 @Preview(showBackground = true)
 @Composable
 fun SearchPreview() {
-    val vm = MainViewModel()
+    val vm = MainViewModel() {}
     Root(vm)
 }

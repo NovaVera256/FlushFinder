@@ -22,7 +22,7 @@ import androidx.compose.ui.unit.dp
 import edu.temple.flushfinder.ui.theme.FlushFinderTheme
 
 @Composable
-fun LoginPage(state: AccountState, innerPadding: PaddingValues) {
+fun AccountPage(state: AccountState, innerPadding: PaddingValues, onTokenChanged: (String?) -> Unit) {
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -39,6 +39,7 @@ fun LoginPage(state: AccountState, innerPadding: PaddingValues) {
             Button(
                 onClick = {
                     state.token.value = null
+                    onTokenChanged(state.token.value)
                     state.isLoggedIn.value = false
                     state.password.value = ""
                     state.errorMessage.value = null
@@ -120,11 +121,13 @@ fun LoginPage(state: AccountState, innerPadding: PaddingValues) {
 
                         if (result.token != null) {
                             state.token.value = result.token
+                            onTokenChanged(state.token.value)
                             state.isLoggedIn.value = true
                             state.errorMessage.value = null
                             state.password.value = ""
                         } else {
                             state.token.value = null
+                            onTokenChanged(state.token.value)
                             state.isLoggedIn.value = false
                             state.errorMessage.value = result.error ?: "Authentication failed."
                         }
@@ -168,7 +171,7 @@ fun LoginPage(state: AccountState, innerPadding: PaddingValues) {
 fun LoginPreview() {
     FlushFinderTheme(true) {
         Scaffold {
-            LoginPage(AccountState(), it)
+            AccountPage(AccountState(), it) {}
         }
     }
 
