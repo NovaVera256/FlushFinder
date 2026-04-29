@@ -2,6 +2,7 @@ package edu.temple.flushfinder
 
 import android.util.Log
 import android.widget.CheckBox
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -13,6 +14,9 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.LocationSearching
 import androidx.compose.material3.Button
@@ -38,6 +42,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.Preview
@@ -71,6 +76,7 @@ fun NewLocationPage(state: NewLocationState, innerPadding: PaddingValues, onSubm
     val changingStation = remember { mutableStateOf(false) }
     val sanitizer = remember { mutableStateOf(false) }
     val customerOnly = remember { mutableStateOf(false) }
+    val singleOccupancy = remember { mutableStateOf(false) }
 
     Column(
         Modifier.fillMaxSize()
@@ -81,7 +87,7 @@ fun NewLocationPage(state: NewLocationState, innerPadding: PaddingValues, onSubm
     ) {
         Text("Upload Bathroom", style = MaterialTheme.typography.titleLarge)
         Card(
-            Modifier.fillMaxHeight(.4f)
+            Modifier.height(250.dp)
             .fillMaxWidth()
         ) {
             LocationSelector { lat, lon ->
@@ -89,34 +95,58 @@ fun NewLocationPage(state: NewLocationState, innerPadding: PaddingValues, onSubm
                 longitude = lon
             }
         }
-        TextField(
-            locationName,
-            { locationName = it },
-            label = { Text("Location Name") },
-            singleLine = true
-        )
 
-        Text("About this location:")
+        Column (
+            Modifier.verticalScroll(rememberScrollState()).clip(RoundedCornerShape(15.dp))
+                .background(MaterialTheme.colorScheme.surfaceContainerLow)
+                .padding(12.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(20.dp),
 
-        Row (
-            Modifier.height(IntrinsicSize.Min),
-            horizontalArrangement = Arrangement.spacedBy(10.dp)
         ) {
-            CheckableText("Accessible", accessible)
-            VerticalDivider()
-            CheckableText("Changing Station", changingStation)
-        }
-        Row (
-            Modifier.height(IntrinsicSize.Min),
-            horizontalArrangement = Arrangement.spacedBy(10.dp)
-        ) {
-            CheckableText("Air Dryer", airDryer)
-            VerticalDivider()
-            CheckableText("Paper Towels", paperTowels)
-        }
+            TextField(
+                locationName,
+                { locationName = it },
+                label = { Text("Location Name") },
+                singleLine = true
+            )
 
-        Button({ confirmSubmit = true } ) {
-            Text("Upload New Location!")
+            Text("About this location:")
+
+            Row(
+                Modifier.height(IntrinsicSize.Min),
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                CheckableText("Accessible", accessible)
+                VerticalDivider()
+                CheckableText("Changing Station", changingStation)
+            }
+            Row(
+                Modifier.height(IntrinsicSize.Min),
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                CheckableText("Air Dryer", airDryer)
+                VerticalDivider()
+                CheckableText("Paper Towels", paperTowels)
+            }
+            Row(
+                Modifier.height(IntrinsicSize.Min),
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                CheckableText("Hand Sanitizer", sanitizer)
+                VerticalDivider()
+                CheckableText("Customers Only", customerOnly)
+            }
+            Row(
+                Modifier.height(IntrinsicSize.Min),
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                CheckableText("Private Bathrooms", singleOccupancy)
+            }
+
+            Button({ confirmSubmit = true }) {
+                Text("Upload New Location!")
+            }
         }
     }
 
@@ -136,7 +166,8 @@ fun NewLocationPage(state: NewLocationState, innerPadding: PaddingValues, onSubm
             paperTowels = paperTowels.value,
             wheelchair = accessible.value,
             handSanitizer = sanitizer.value,
-            customerOnly = customerOnly.value
+            customerOnly = customerOnly.value,
+            singleOccupancy = singleOccupancy.value
         ))
     }
 }

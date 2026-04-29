@@ -104,6 +104,7 @@ data class SearchState (
     val amenities: Amenities = Amenities(),
     
     val reviewing: MutableState<Boolean> = mutableStateOf(false),
+    val reporting: MutableState<Boolean> = mutableStateOf(false),
     val reviewTextState: MutableState<String> = mutableStateOf(""),
     val reviewRatingState: MutableIntState = mutableIntStateOf(0),
     val reviewError: MutableState<String?> = mutableStateOf(null),
@@ -144,7 +145,8 @@ data class BathroomLocation(
     val airDryer: Boolean?,
     val paperTowels: Boolean?,
     val handSanitizer: Boolean?,
-    val wheelchair: Boolean?
+    val wheelchair: Boolean?,
+    val singleOccupancy: Boolean?
 )
 
 /*
@@ -360,6 +362,21 @@ fun Root(state: MainViewModel) {
             when (state.page.value) {
                 Page.NewLocation -> NewLocationPage(state.newLocation, innerPadding) {
                     Log.d("NewLocation", "Submitting new location $it")
+                    LocationsApi.createLocation(
+                        it.latitude,
+                        it.longitude,
+                        it.name,
+                        it.changingStation!!,
+                        it.airDryer!!,
+                        it.paperTowels!!,
+                        it.handSanitizer!!,
+                        it.singleOccupancy!!,
+                        it.wheelchair!!,
+                        it.customerOnly!!,
+                        state.account.token.value
+                    ) {
+                        Log.d("response", it.error ?: "")
+                    }
                 }
                 Page.Search -> SearchPage(
                     state = state.search,

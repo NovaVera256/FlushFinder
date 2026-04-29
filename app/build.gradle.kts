@@ -66,7 +66,7 @@ dependencies {
     implementation(libs.androidx.compose.material3)
     implementation(libs.androidx.compose.material.icons.extended)
     implementation(libs.androidx.graphics.shapes)
-    implementation(libs.androidx.compose.foundation.layout)
+    implementation("androidx.compose.foundation:foundation-layout:1.11.0")
     implementation(libs.maps.compose)
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)

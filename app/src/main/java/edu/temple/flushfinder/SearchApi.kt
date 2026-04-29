@@ -103,6 +103,7 @@ object SearchApi {
                             paperTowels = if (item.has("paper_towels")) item.optBoolean("paper_towels") else null,
                             wheelchair = if (item.has("wheelchair")) item.optBoolean("wheelchair") else null,
                             handSanitizer = if (item.has("hand_sanitizer")) item.optBoolean("hand_sanitizer") else null,
+                            singleOccupancy = if (item.has("single_occupancy")) item.optBoolean("single_occupancy") else null,
                         )
                     )
                 }

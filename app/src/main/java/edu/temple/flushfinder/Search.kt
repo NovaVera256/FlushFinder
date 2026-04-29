@@ -119,11 +119,13 @@ import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.draw.scale
+import androidx.compose.ui.layout.ModifierLocalBeyondBoundsLayout
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.window.Dialog
 import com.google.android.gms.maps.model.Marker
@@ -266,7 +268,7 @@ fun Review(user: String, text: String, rating: Int) {
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
-fun BathroomDetails(bathroom: BathroomLocation, reviews: List<BathroomReview>?, onReview: () -> Unit) {
+fun BathroomDetails(bathroom: BathroomLocation, reviews: List<BathroomReview>?, onReview: () -> Unit, onReport: () -> Unit) {
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -322,6 +324,15 @@ fun BathroomDetails(bathroom: BathroomLocation, reviews: List<BathroomReview>?, 
             if (bathroom.changingStation == true) AmenityChip("Baby Changing Station")
             if (bathroom.handSanitizer == true) AmenityChip("Hand Sanitizer")
             //TODO: sanitizer
+        }
+
+        TextButton(
+            onClick = onReport
+        ) {
+            Text(
+                "Incorrect information? Report it now.",
+                color = MaterialTheme.colorScheme.secondary
+            )
         }
 
         HorizontalDivider()
@@ -537,9 +548,9 @@ fun SearchPage(state: SearchState, innerPadding: PaddingValues, authToken: Strin
             ) {
                 state.results.value.forEach { bathroom ->
                     Marker(
-                        state = MarkerState(
+                        state =  remember { return@remember MarkerState(
                             position = LatLng(bathroom.latitude, bathroom.longitude)
-                        ),
+                        ) },
                         title = bathroom.name,
                         snippet = bathroom.rating?.let { rating -> "Rating: $rating" } ?: "No rating",
                         onClick = { marker ->
@@ -564,9 +575,26 @@ fun SearchPage(state: SearchState, innerPadding: PaddingValues, authToken: Strin
             ) {
                 BathroomDetails(bathroom, reviews.value, {
                     state.reviewing.value = true
-                })
+                },
+                    {
+                        state.reporting.value = true
+                    })
             }
 
+        }
+
+        if(state.reporting.value) {
+            Dialog(
+                onDismissRequest = { state.reporting.value = false }
+            ) {
+                ReportDialog(clickedBathroom.value) { edit ->
+//                    if(authToken != null) ReviewApi.createReview(edit.bathroomId, rating, text, authToken) { createResponse ->
+//                        if(createResponse.success) ReviewApi.getReviews(clickedBathroom.value!!.bathroomId, authToken) {
+//                            if(it.success) reviews.value = it.reviews
+//                        }
+//                    }
+                }
+            }
         }
 
         if(state.reviewing.value) {
@@ -698,7 +726,7 @@ fun SearchPage(state: SearchState, innerPadding: PaddingValues, authToken: Strin
                         number = sliderToBathroomCount(sliderState.value),
                         latitude = location.latitude,
                         longitude = location.longitude,
-                        customerOnly = state.amenities.customerOnly.value,
+                        customerOnly = state.accessSelection.value[1],
                         changingStation = state.amenities.changingStation.value,
                         airDryer = state.amenities.dryer.value,
                         paperTowels = state.amenities.paper.value,
@@ -762,6 +790,7 @@ fun PreviewTray() {
         true,
         true,
         true,
+        false
     )
 
     FlushFinderTheme(true) {
@@ -769,7 +798,7 @@ fun PreviewTray() {
 
         ) {
             val a = it
-            BathroomDetails(bathroom, null, {})
+            BathroomDetails(bathroom, null, {}, {})
         }
     }
 }

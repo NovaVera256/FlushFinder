@@ -5,6 +5,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.defaultMinSize
@@ -29,7 +30,12 @@ import androidx.compose.material3.Slider
 import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
+import androidx.compose.material3.VerticalDivider
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -124,27 +130,28 @@ fun ReviewDialog(state: SearchState, bathroom: BathroomLocation?, onSubmit: (Int
             colors = OutlinedTextFieldDefaults.colors(MaterialTheme.colorScheme.onPrimary)
         )
 
-                Button(
-                    onClick = {
-                        if(state.reviewTextState.value == "")
-                            state.reviewError.value = "Please type a review"
-                        else if(state.reviewRatingState.intValue == 0)
-                            state.reviewError.value = "Please provide a rating"
-                        else
-                            state.reviewError.value = null
-                            state.reviewing.value = false
-
-                        onSubmit(
-                            state.reviewRatingState.intValue,
-                            state.reviewTextState.value.ifBlank { null }
-                        )
-                    },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(8.dp)
-                ) {
-                    Text("Submit Review")
+        Button(
+            onClick = {
+                if(state.reviewTextState.value == "")
+                    state.reviewError.value = "Please type a review"
+                else if(state.reviewRatingState.intValue == 0)
+                    state.reviewError.value = "Please provide a rating"
+                else {
+                    state.reviewError.value = null
+                    state.reviewing.value = false
                 }
+
+                onSubmit(
+                    state.reviewRatingState.intValue,
+                    state.reviewTextState.value.ifBlank { null }
+                )
+            },
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(8.dp)
+        ) {
+            Text("Submit Review")
+        }
 
         state.reviewError.value?.let{
             Text(
@@ -152,6 +159,92 @@ fun ReviewDialog(state: SearchState, bathroom: BathroomLocation?, onSubmit: (Int
                 color = MaterialTheme.colorScheme.error
             )
         }
+    }
+}
+
+@Composable
+fun ReportDialog(bathroom: BathroomLocation?, onSubmit: (BathroomLocation) -> Unit) {
+
+    val accessible = remember { mutableStateOf(bathroom?.wheelchair!!) }
+    val airDryer = remember { mutableStateOf(bathroom?.airDryer!!) }
+    val paperTowels = remember { mutableStateOf(bathroom?.paperTowels!!) }
+    val changingStation = remember { mutableStateOf(bathroom?.changingStation!!) }
+    val sanitizer = remember { mutableStateOf(bathroom?.handSanitizer!!) }
+    val customerOnly = remember { mutableStateOf(bathroom?.customerOnly!!) }
+    val singleOccupancy = remember { mutableStateOf(bathroom?.singleOccupancy!!) }
+    var confirmSubmit by remember { mutableStateOf(false) }
+
+    Column(
+        modifier = Modifier
+            .width(300.dp)
+            .background(MaterialTheme.colorScheme.background),
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        Text(
+            text = "Please confirm details for bathroom at " + bathroom?.name,
+            modifier = Modifier
+                .padding(8.dp)
+        )
+
+        HorizontalDivider()
+
+
+
+        Row (
+            Modifier.height(IntrinsicSize.Min),
+            horizontalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            CheckableText("Accessible", accessible)
+            VerticalDivider()
+            CheckableText("Changing Station", changingStation)
+        }
+        Row (
+            Modifier.height(IntrinsicSize.Min),
+            horizontalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            CheckableText("Air Dryer", airDryer)
+            VerticalDivider()
+            CheckableText("Paper Towels", paperTowels)
+        }
+        Row (
+            Modifier.height(IntrinsicSize.Min),
+            horizontalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            CheckableText("Hand Sanitizer", sanitizer)
+            VerticalDivider()
+            CheckableText("Customers Only", customerOnly)
+        }
+        Row (
+            Modifier.height(IntrinsicSize.Min),
+            horizontalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            CheckableText("Private Bathrooms", singleOccupancy)
+        }
+
+        Button({ confirmSubmit = true } ) {
+            Text("Report Updated Information")
+        }
+    }
+
+    if(confirmSubmit) ConfirmSubmit(
+        {confirmSubmit = false}
+    ) {
+        //TODO: clear variables, congratulate user
+        confirmSubmit = false
+        onSubmit(BathroomLocation(
+            bathroomId = 0,
+            name = "",
+            latitude = 0.0,
+            longitude = 0.0,
+            rating = null,
+            changingStation = changingStation.value,
+            airDryer = airDryer.value,
+            paperTowels = paperTowels.value,
+            wheelchair = accessible.value,
+            handSanitizer = sanitizer.value,
+            customerOnly = customerOnly.value,
+            singleOccupancy = singleOccupancy.value
+        ))
     }
 }
 
@@ -172,7 +265,8 @@ fun previewReview() {
                 false,
                 true,
                 false,
-                true
+                true,
+                false
             )
         ) {p1, p2 -> }
     }
@@ -195,6 +289,7 @@ fun PreviewTray2() {
         true,
         true,
         true,
+        false
     )
 
     FlushFinderTheme(true) {
@@ -202,7 +297,30 @@ fun PreviewTray2() {
 
         ) {
             val a = it
-            BathroomDetails(bathroom, null, {})
+            BathroomDetails(bathroom, null, {}, {})
         }
+    }
+}
+
+@Preview
+@Composable
+fun thingyDialogPreview() {
+    ReportDialog(
+        BathroomLocation(
+        0,
+        "The Bookstore on Cecil",
+        false,
+        15.0,
+        15.0,
+        4.5,
+        true,
+        true,
+        true,
+        true,
+        true,
+        false
+        )
+    ) {
+
     }
 }
