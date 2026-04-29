@@ -26,10 +26,12 @@ object SearchApi {
         number: Int,
         latitude: Double,
         longitude: Double,
+        customerOnly: Boolean,
         changingStation: Boolean,
         airDryer: Boolean,
         paperTowels: Boolean,
         wheelchair: Boolean,
+        handSanitizer: Boolean,
         token: String? = null,
         callback: (SearchResponse) -> Unit
     ) {
@@ -41,9 +43,11 @@ object SearchApi {
                     .appendQueryParameter("number", number.toString())
                     .appendQueryParameter("latitude", latitude.toString())
                     .appendQueryParameter("longitude", longitude.toString())
+                    .appendQueryParameter("customer_only", customerOnly.toString())
                     .appendQueryParameter("changing_station", changingStation.toString())
                     .appendQueryParameter("air_dryer", airDryer.toString())
                     .appendQueryParameter("paper_towels", paperTowels.toString())
+                    .appendQueryParameter("hand_sanitizer", handSanitizer.toString())
                     .appendQueryParameter("wheelchair", wheelchair.toString())
                     .toString()
                 ).openConnection() as HttpURLConnection).apply {
@@ -92,11 +96,13 @@ object SearchApi {
                             latitude = item.getDouble("latitude"),
                             longitude = item.getDouble("longitude"),
                             name = item.getString("name"),
+                            customerOnly = if (item.has("customer_only")) item.optBoolean("customer_only") else null,
                             rating = if (item.has("rating")) item.optDouble("rating") else null,
                             changingStation = if (item.has("changing_station")) item.optBoolean("changing_station") else null,
                             airDryer = if (item.has("air_dryer")) item.optBoolean("air_dryer") else null,
                             paperTowels = if (item.has("paper_towels")) item.optBoolean("paper_towels") else null,
                             wheelchair = if (item.has("wheelchair")) item.optBoolean("wheelchair") else null,
+                            handSanitizer = if (item.has("hand_sanitizer")) item.optBoolean("hand_sanitizer") else null,
                         )
                     )
                 }

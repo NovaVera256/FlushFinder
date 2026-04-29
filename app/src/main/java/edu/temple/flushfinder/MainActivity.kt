@@ -19,6 +19,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountCircle
@@ -67,6 +68,7 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Dialog
 import androidx.core.content.edit
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
@@ -86,6 +88,7 @@ enum class Page {
 data class Amenities (
     val paper: MutableState<Boolean> = mutableStateOf(false),
     val dryer: MutableState<Boolean> = mutableStateOf(false),
+    val customerOnly: MutableState<Boolean> = mutableStateOf(false),
     val accessible: MutableState<Boolean> = mutableStateOf(false),
     val changingStation: MutableState<Boolean> = mutableStateOf(false),
     val sanitizer: MutableState<Boolean> = mutableStateOf(false),
@@ -105,7 +108,7 @@ data class SearchState (
     val reviewRatingState: MutableIntState = mutableIntStateOf(0),
     val reviewError: MutableState<String?> = mutableStateOf(null),
 
-    val nfcFound: MutableState<String?> = mutableStateOf(null),
+
 
     val searchVisible: MutableState<Boolean> = mutableStateOf(true),
     val showMap: MutableState<Boolean> = mutableStateOf(false),
@@ -133,12 +136,14 @@ data class NewLocationState (
 data class BathroomLocation(
     val bathroomId: Int,
     val name: String,
+    val customerOnly: Boolean?,
     val latitude: Double,
     val longitude: Double,
     val rating: Double?,
     val changingStation: Boolean?,
     val airDryer: Boolean?,
     val paperTowels: Boolean?,
+    val handSanitizer: Boolean?,
     val wheelchair: Boolean?
 )
 
@@ -151,6 +156,7 @@ class MainViewModel (
     val newLocation: NewLocationState = NewLocationState(),
     val search: SearchState = SearchState(),
     val account: AccountState = AccountState(),
+    val nfcFound: MutableState<String?> = mutableStateOf(null),
     var onTokenChanged: (String?) -> Unit = { }
 ): ViewModel()
 
@@ -261,7 +267,7 @@ class MainActivity : ComponentActivity() {
                         val messages: List<NdefMessage> = rawMessages.map { it as NdefMessage }
 
                         if (messages[0].records[0].toMimeType() == "application/vnd.flushfinder")
-                            viewmodel.search.nfcFound.value =
+                            viewmodel.nfcFound.value =
                                 parseTextRecord(messages[0].records[0])
 
                     }
@@ -363,6 +369,16 @@ fun Root(state: MainViewModel) {
                 Page.Account -> AccountPage(state.account, innerPadding, onTokenChanged = state.onTokenChanged)
             }
 
+            state.nfcFound.value?.let {
+                Dialog(
+                    onDismissRequest = {
+                        state.nfcFound.value = null
+                    }
+                ) {
+                    NfcDialog(state)
+                }
+            }
+
 
         }
     }
@@ -370,14 +386,26 @@ fun Root(state: MainViewModel) {
 
 
 @Composable
-fun NfcDialog(info: String) {
+fun NfcDialog(state: MainViewModel) {
     Column(
         modifier = Modifier
             .width(300.dp)
             .background(MaterialTheme.colorScheme.background),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        Text("NFC Detected: $info")
+        if(state.account.token.value.isNullOrBlank()) {
+            Text(
+                text = "Please log in to unlock this bathroom.",
+                modifier = Modifier
+                    .padding(8.dp)
+            )
+        } else {
+            Text(
+                text = "Welcome to the bathroom, " + state.account.username.value + "!",
+                modifier = Modifier
+                    .padding(8.dp)
+            )
+        }
     }
 }
 
@@ -388,4 +416,11 @@ fun NfcDialog(info: String) {
 fun SearchPreview() {
     val vm = MainViewModel() {}
     Root(vm)
+}
+
+@Preview(showBackground = true)
+@Composable
+fun nfcDiagogPreview() {
+    val vm = MainViewModel() {}
+    NfcDialog(vm)
 }

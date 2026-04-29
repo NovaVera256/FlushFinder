@@ -86,6 +86,8 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.AnimationEndReason
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.platform.LocalContext
@@ -262,7 +264,7 @@ fun Review(user: String, text: String, rating: Int) {
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 fun BathroomDetails(bathroom: BathroomLocation, reviews: List<BathroomReview>?, onReview: () -> Unit) {
     Column(
@@ -311,12 +313,14 @@ fun BathroomDetails(bathroom: BathroomLocation, reviews: List<BathroomReview>?, 
         }
 
 
-        Row(
+
+        FlowRow(
             horizontalArrangement = Arrangement.spacedBy(10.dp)
         ) {
             if (bathroom.paperTowels == true) AmenityChip("Paper Towels")
             if (bathroom.airDryer == true) AmenityChip("Air Dryer")
             if (bathroom.changingStation == true) AmenityChip("Baby Changing Station")
+            if (bathroom.handSanitizer == true) AmenityChip("Hand Sanitizer")
             //TODO: sanitizer
         }
 
@@ -579,15 +583,7 @@ fun SearchPage(state: SearchState, innerPadding: PaddingValues, authToken: Strin
             }
         }
 
-        state.nfcFound.value?.let {
-            Dialog(
-                onDismissRequest = {
-                    state.nfcFound.value = null
-                }
-            ) {
-                NfcDialog(state.nfcFound.value!!)
-            }
-        }
+
 
         if(state.searchVisible.value) Column(
             modifier = Modifier
@@ -702,10 +698,12 @@ fun SearchPage(state: SearchState, innerPadding: PaddingValues, authToken: Strin
                         number = sliderToBathroomCount(sliderState.value),
                         latitude = location.latitude,
                         longitude = location.longitude,
+                        customerOnly = state.amenities.customerOnly.value,
                         changingStation = state.amenities.changingStation.value,
                         airDryer = state.amenities.dryer.value,
                         paperTowels = state.amenities.paper.value,
                         wheelchair = state.amenities.accessible.value,
+                        handSanitizer = state.amenities.sanitizer.value,
                         token = authToken
                     ) { response ->
                         state.isSearching.value = false
@@ -755,11 +753,13 @@ fun PreviewTray() {
     val bathroom: BathroomLocation = BathroomLocation(
         0,
         "The Bookstore on Cecil",
+        false,
         15.0,
         15.0,
         4.5,
         true,
-        false,
+        true,
+        true,
         true,
         true,
     )
@@ -774,8 +774,3 @@ fun PreviewTray() {
     }
 }
 
-@Preview
-@Composable
-fun thingy() {
-    NfcDialog("this is a test")
-}

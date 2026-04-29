@@ -18,11 +18,13 @@ import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.Button
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
+import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Slider
 import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Text
@@ -162,14 +164,45 @@ fun previewReview() {
             bathroom = BathroomLocation(
                 45678,
                 "Charles Library",
+                false,
                 65.5,
                 46.7,
                 4.5,
                 true,
                 false,
                 true,
-                false
+                false,
+                true
             )
         ) {p1, p2 -> }
+    }
+}
+
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Preview(showBackground = true)
+@Composable
+fun PreviewTray2() {
+    val bathroom: BathroomLocation = BathroomLocation(
+        0,
+        "The Bookstore on Cecil",
+        false,
+        15.0,
+        15.0,
+        4.5,
+        true,
+        false,
+        true,
+        true,
+        true,
+    )
+
+    FlushFinderTheme(true) {
+        Scaffold(
+
+        ) {
+            val a = it
+            BathroomDetails(bathroom, null, {})
+        }
     }
 }

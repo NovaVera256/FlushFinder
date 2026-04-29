@@ -69,6 +69,8 @@ fun NewLocationPage(state: NewLocationState, innerPadding: PaddingValues, onSubm
     val airDryer = remember { mutableStateOf(false) }
     val paperTowels = remember { mutableStateOf(false) }
     val changingStation = remember { mutableStateOf(false) }
+    val sanitizer = remember { mutableStateOf(false) }
+    val customerOnly = remember { mutableStateOf(false) }
 
     Column(
         Modifier.fillMaxSize()
@@ -132,7 +134,9 @@ fun NewLocationPage(state: NewLocationState, innerPadding: PaddingValues, onSubm
             changingStation = changingStation.value,
             airDryer = airDryer.value,
             paperTowels = paperTowels.value,
-            wheelchair = accessible.value
+            wheelchair = accessible.value,
+            handSanitizer = sanitizer.value,
+            customerOnly = customerOnly.value
         ))
     }
 }
