@@ -79,6 +79,7 @@ import android.content.Context
 import android.content.pm.PackageManager
 import android.location.Location
 import android.location.LocationManager
+import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -126,7 +127,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.layout.ModifierLocalBeyondBoundsLayout
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.window.Dialog
 import com.google.android.gms.maps.model.Marker
 import kotlinx.coroutines.launch
@@ -160,13 +164,11 @@ fun AmenitiesBox(state: Amenities) {
         ) {
             CheckableAmenity("Paper", state.paper)
             CheckableAmenity("Dryer", state.dryer)
-            CheckableAmenity("Soap", state.soap)
         }
         VerticalDivider()
         Column(
             horizontalAlignment = Alignment.End
         ) {
-            CheckableAmenity("Wheelchair Accessible", state.accessible)
             CheckableAmenity("Changing Station", state.changingStation)
             CheckableAmenity("Hand Sanitizer", state.sanitizer)
         }
@@ -284,17 +286,16 @@ fun BathroomDetails(bathroom: BathroomLocation, reviews: List<BathroomReview>?, 
                 text = bathroom.name,
                 style = MaterialTheme.typography.titleLarge
             )
-            if (bathroom.rating != null)
+            if (bathroom.rating?.isFinite() == true)
                 Rating(bathroom.rating.roundToInt())
             else
-                Text(text = "unrated/5.0")
+                Text(text = "[ Unrated ]")
         }
 
 
         val iconTint = MaterialTheme.colorScheme.secondary
         Row {
-            //TODO: use customerOnly field
-            if (bathroom.bathroomId == 1) {
+            if (bathroom.customerOnly!!) {
                 Icon(Icons.Default.Lock, null, tint = iconTint)
                 Text("Customer Only")
             } else {
@@ -323,7 +324,7 @@ fun BathroomDetails(bathroom: BathroomLocation, reviews: List<BathroomReview>?, 
             if (bathroom.airDryer == true) AmenityChip("Air Dryer")
             if (bathroom.changingStation == true) AmenityChip("Baby Changing Station")
             if (bathroom.handSanitizer == true) AmenityChip("Hand Sanitizer")
-            //TODO: sanitizer
+            if (bathroom.singleOccupancy == true) AmenityChip("Private Bathrooms")
         }
 
         TextButton(
@@ -331,7 +332,8 @@ fun BathroomDetails(bathroom: BathroomLocation, reviews: List<BathroomReview>?, 
         ) {
             Text(
                 "Incorrect information? Report it now.",
-                color = MaterialTheme.colorScheme.secondary
+                color = MaterialTheme.colorScheme.secondary,
+                style = TextStyle(textDecoration = TextDecoration.Underline)
             )
         }
 
@@ -588,11 +590,29 @@ fun SearchPage(state: SearchState, innerPadding: PaddingValues, authToken: Strin
                 onDismissRequest = { state.reporting.value = false }
             ) {
                 ReportDialog(clickedBathroom.value) { edit ->
-//                    if(authToken != null) ReviewApi.createReview(edit.bathroomId, rating, text, authToken) { createResponse ->
-//                        if(createResponse.success) ReviewApi.getReviews(clickedBathroom.value!!.bathroomId, authToken) {
-//                            if(it.success) reviews.value = it.reviews
-//                        }
-//                    }
+                    if(authToken != null) LocationsApi.updateLocation(
+                        bathroomId = edit.bathroomId,
+                        changingStation = edit.changingStation,
+                        airDryer = edit.airDryer,
+                        paperTowels = edit.paperTowels,
+                        wheelchair = edit.wheelchair,
+                        handSanitizer = edit.handSanitizer,
+                        singleOccupancy = edit.singleOccupancy,
+                        customerOnly = edit.customerOnly,
+                        token = authToken
+                    ) { updateResponse ->
+                        if(!updateResponse.error.isNullOrBlank()) Log.d("UpdateLocation", "Error updating location: " + updateResponse.error)
+                        clickedBathroom.value = clickedBathroom.value?.copy(
+                            changingStation = edit.changingStation,
+                            airDryer = edit.airDryer,
+                            paperTowels = edit.paperTowels,
+                            wheelchair = edit.wheelchair,
+                            handSanitizer = edit.handSanitizer,
+                            singleOccupancy = edit.singleOccupancy,
+                            customerOnly = edit.customerOnly
+                        )
+                    }
+                    state.reporting.value = false
                 }
             }
         }
@@ -726,12 +746,13 @@ fun SearchPage(state: SearchState, innerPadding: PaddingValues, authToken: Strin
                         number = sliderToBathroomCount(sliderState.value),
                         latitude = location.latitude,
                         longitude = location.longitude,
-                        customerOnly = state.accessSelection.value[1],
+                        customerOnly = state.accessSelection.value[2],
                         changingStation = state.amenities.changingStation.value,
                         airDryer = state.amenities.dryer.value,
                         paperTowels = state.amenities.paper.value,
-                        wheelchair = state.amenities.accessible.value,
+                        wheelchair = state.accessSelection.value[0],
                         handSanitizer = state.amenities.sanitizer.value,
+                        singleOccupancy = state.accessSelection.value[1],
                         token = authToken
                     ) { response ->
                         state.isSearching.value = false
@@ -784,13 +805,13 @@ fun PreviewTray() {
         false,
         15.0,
         15.0,
-        4.5,
+        null,
         true,
         true,
         true,
         true,
         true,
-        false
+        true
     )
 
     FlushFinderTheme(true) {

@@ -98,7 +98,7 @@ data class Amenities (
 data class SearchState (
     val searchDistance: MutableFloatState = mutableFloatStateOf(0f),
 
-    val accessOptions: List<String> = listOf("Free", "Customers", "Door Code"),
+    val accessOptions: List<String> = listOf("Wheelchair Accessible", "Private Bathrooms", "Include Customer Only"),
     val accessSelection: MutableState<List<Boolean>> = mutableStateOf(listOf(false, false, false)),
 
     val amenities: Amenities = Amenities(),
