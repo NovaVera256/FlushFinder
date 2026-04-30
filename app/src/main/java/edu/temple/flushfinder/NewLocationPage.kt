@@ -19,10 +19,13 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.LocationSearching
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.BasicAlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Checkbox
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
@@ -48,6 +51,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import com.google.android.gms.maps.CameraUpdate
 import com.google.android.gms.maps.CameraUpdateFactory
 import com.google.android.gms.maps.model.CameraPosition
@@ -62,6 +66,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun NewLocationPage(state: NewLocationState, innerPadding: PaddingValues, onSubmit: (BathroomLocation) -> Unit) {
     var confirmSubmit by remember { mutableStateOf(false) }
@@ -169,6 +174,36 @@ fun NewLocationPage(state: NewLocationState, innerPadding: PaddingValues, onSubm
             customerOnly = customerOnly.value,
             singleOccupancy = singleOccupancy.value
         ))
+    }
+
+    fun dismiss() {
+        state.showSuccess.value = false
+        accessible.value = false
+        airDryer.value = false
+        paperTowels.value = false
+        changingStation.value = false
+        sanitizer.value = false
+        customerOnly.value = false
+        singleOccupancy.value = false
+        locationName = ""
+    }
+    if(state.showSuccess.value) {
+        Dialog(::dismiss) {
+            Card(
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.background
+                )
+            ) {
+                Column (
+                    Modifier.padding(20.dp),
+                ) {
+                    Text("Successfully submitted!")
+                    Button(::dismiss) {
+                        Text("Ok")
+                    }
+                }
+            }
+        }
     }
 }
 

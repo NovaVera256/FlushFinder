@@ -131,7 +131,7 @@ data class AccountState (
 )
 
 data class NewLocationState (
-    val dummy: Boolean = true
+    val showSuccess: MutableState<Boolean> = mutableStateOf(false)
 )
 
 data class BathroomLocation(
@@ -376,6 +376,7 @@ fun Root(state: MainViewModel) {
                         state.account.token.value
                     ) {
                         Log.d("response", it.error ?: "")
+                        state.newLocation.showSuccess.value = true
                     }
                 }
                 Page.Search -> SearchPage(
