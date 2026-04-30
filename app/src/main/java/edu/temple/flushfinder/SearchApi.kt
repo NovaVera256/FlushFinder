@@ -32,6 +32,7 @@ object SearchApi {
         paperTowels: Boolean,
         wheelchair: Boolean,
         handSanitizer: Boolean,
+        singleOccupancy: Boolean,
         token: String? = null,
         callback: (SearchResponse) -> Unit
     ) {
@@ -48,6 +49,7 @@ object SearchApi {
                     .appendQueryParameter("air_dryer", airDryer.toString())
                     .appendQueryParameter("paper_towels", paperTowels.toString())
                     .appendQueryParameter("hand_sanitizer", handSanitizer.toString())
+                    .appendQueryParameter("single_occupancy", singleOccupancy.toString())
                     .appendQueryParameter("wheelchair", wheelchair.toString())
                     .toString()
                 ).openConnection() as HttpURLConnection).apply {

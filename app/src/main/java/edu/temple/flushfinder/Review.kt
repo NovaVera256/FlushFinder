@@ -191,37 +191,41 @@ fun ReportDialog(bathroom: BathroomLocation?, onSubmit: (BathroomLocation) -> Un
 
 
         Row (
-            Modifier.height(IntrinsicSize.Min),
-            horizontalArrangement = Arrangement.spacedBy(10.dp)
+            Modifier.height(IntrinsicSize.Min).width(284.dp),
+            horizontalArrangement = Arrangement.spacedBy(space = 10.dp, alignment = Alignment.CenterHorizontally)
         ) {
             CheckableText("Accessible", accessible)
             VerticalDivider()
-            CheckableText("Changing Station", changingStation)
+            CheckableText("Changing\nStation", changingStation)
         }
         Row (
             Modifier.height(IntrinsicSize.Min),
-            horizontalArrangement = Arrangement.spacedBy(10.dp)
+            horizontalArrangement = Arrangement.spacedBy(space = 10.dp, alignment = Alignment.CenterHorizontally)
         ) {
-            CheckableText("Air Dryer", airDryer)
+            CheckableText("Air\nDryer", airDryer)
             VerticalDivider()
-            CheckableText("Paper Towels", paperTowels)
+            CheckableText("Paper\nTowels", paperTowels)
         }
         Row (
-            Modifier.height(IntrinsicSize.Min),
-            horizontalArrangement = Arrangement.spacedBy(10.dp)
+            Modifier.height(IntrinsicSize.Min).width(284.dp),
+            horizontalArrangement = Arrangement.spacedBy(space = 10.dp, alignment = Alignment.CenterHorizontally)
         ) {
-            CheckableText("Hand Sanitizer", sanitizer)
+            CheckableText("Hand\nSanitizer", sanitizer)
             VerticalDivider()
-            CheckableText("Customers Only", customerOnly)
+            CheckableText("Customers\nOnly", customerOnly)
         }
         Row (
-            Modifier.height(IntrinsicSize.Min),
-            horizontalArrangement = Arrangement.spacedBy(10.dp)
+            Modifier.height(IntrinsicSize.Min).width(284.dp),
+            horizontalArrangement = Arrangement.spacedBy(space = 10.dp, alignment = Alignment.CenterHorizontally)
         ) {
-            CheckableText("Private Bathrooms", singleOccupancy)
+            CheckableText("Private\nBathrooms", singleOccupancy)
         }
 
-        Button({ confirmSubmit = true } ) {
+        Button(
+            onClick = { confirmSubmit = true },
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(8.dp)) {
             Text("Report Updated Information")
         }
     }
@@ -232,7 +236,7 @@ fun ReportDialog(bathroom: BathroomLocation?, onSubmit: (BathroomLocation) -> Un
         //TODO: clear variables, congratulate user
         confirmSubmit = false
         onSubmit(BathroomLocation(
-            bathroomId = 0,
+            bathroomId = bathroom?.bathroomId!!,
             name = "",
             latitude = 0.0,
             longitude = 0.0,
